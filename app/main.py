@@ -6,6 +6,7 @@ from pydantic import BaseModel
 from app.api import approve_file, download_file, get_files
 from app.settings import Settings
 from fastapi.middleware.cors import CORSMiddleware
+import jwt
 
 class FileAction(str, Enum):
     approve = "approve"
