@@ -11,7 +11,7 @@ from app.settings import settings
 
 keycloak_bearer_scheme = HTTPBearer()
 keycloak_openid = KeycloakOpenID(
-    server_url=f"{settings.keycloak_url}/",
+    server_url=settings.keycloak_url,
     client_id=settings.keycloak_client_id,
     realm_name=settings.keycloak_realm,
 )

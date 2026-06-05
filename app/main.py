@@ -1,14 +1,10 @@
 import asyncio
 from enum import Enum
 
-from fastapi import APIRouter, Depends, FastAPI, HTTPException, Response
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from keycloak import KeycloakOpenID
-from pydantic import BaseModel
+from fastapi import APIRouter, Depends, FastAPI, Response
 from app.api import approve_file, download_file, get_files, verify_token
 from app.settings import Settings
 from fastapi.middleware.cors import CORSMiddleware
-import jwt
 
 
 class FileAction(str, Enum):
