@@ -16,6 +16,7 @@ keycloak_openid = KeycloakOpenID(
     realm_name=settings.keycloak_realm,
 )
 
+
 async def get_files(project_id: str) -> list[FileItem]:
     async with httpx.AsyncClient() as client:
         response = await client.request(
@@ -58,12 +59,19 @@ async def approve_file(project_id: str, file_id: str) -> bool:
         return True
     else:
         raise EgressServiceError(response.status_code, response.json())
-    
-async def verify_token(credentials: HTTPAuthorizationCredentials = Depends(keycloak_bearer_scheme)) -> dict:
+
+
+async def verify_token(
+    credentials: HTTPAuthorizationCredentials = Depends(keycloak_bearer_scheme),
+) -> dict:
     token = credentials.credentials
     try:
         options = {"verify_signature": True, "verify_aud": False, "verify_exp": True}
         payload = await asyncio.to_thread(keycloak_openid.decode_token, token, options)
         return payload
     except Exception as e:
-        raise HTTPException(status_code=401, detail=f"Invalid token: {e}", headers={"WWW-Authenticate": "Bearer"})
+        raise HTTPException(
+            status_code=401,
+            detail=f"Invalid token: {e}",
+            headers={"WWW-Authenticate": "Bearer"},
+        )

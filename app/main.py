@@ -10,6 +10,7 @@ from app.settings import Settings
 from fastapi.middleware.cors import CORSMiddleware
 import jwt
 
+
 class FileAction(str, Enum):
     approve = "approve"
     reject = "reject"
@@ -27,13 +28,14 @@ app.add_middleware(
 
 router = APIRouter(dependencies=[Depends(verify_token)])
 
+
 @app.get("/")
 def read_root():
     return {"Hello": "World"}
 
 
 @router.get("/egress/{egress_id}")
-async def get_egress(egress_id: str, claims = Depends(verify_token)):
+async def get_egress(egress_id: str, claims=Depends(verify_token)):
     return await get_files(egress_id)
 
 
@@ -55,12 +57,11 @@ async def approve_files(egress_id: str, body: dict[str, FileAction]):
         file_id for file_id, action in body.items() if action == FileAction.approve
     ]
     try:
-        await asyncio.gather(
-            *[approve_file(egress_id, fid) for fid in approved_ids]
-        )
+        await asyncio.gather(*[approve_file(egress_id, fid) for fid in approved_ids])
 
         return {"message": "success"}
     except Exception as e:
         raise e
-    
+
+
 app.include_router(router)
