@@ -7,6 +7,9 @@ class Settings(BaseSettings):
     secret_key: str
     egress_username: str
     egress_password: str
+    keycloak_url: str
+    keycloak_client_id: str
+    keycloak_realm: str
     model_config = SettingsConfigDict(
         env_file=".env", env_file_encoding="utf-8", extra="allow"
     )
