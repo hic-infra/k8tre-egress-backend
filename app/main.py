@@ -1,13 +1,14 @@
 import asyncio
 from enum import Enum
 
-from fastapi import FastAPI, Response
+from fastapi import APIRouter, Depends, FastAPI, HTTPException, Response
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from keycloak import KeycloakOpenID
 from pydantic import BaseModel
-from app.api import approve_file, download_file, get_files
+from app.api import approve_file, download_file, get_files, verify_token
 from app.settings import Settings
 from fastapi.middleware.cors import CORSMiddleware
 import jwt
-
 
 class FileAction(str, Enum):
     approve = "approve"
@@ -24,18 +25,19 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+router = APIRouter(dependencies=[Depends(verify_token)])
 
 @app.get("/")
 def read_root():
     return {"Hello": "World"}
 
 
-@app.get("/egress/{egress_id}")
-async def get_egress(egress_id: str):
+@router.get("/egress/{egress_id}")
+async def get_egress(egress_id: str, claims = Depends(verify_token)):
     return await get_files(egress_id)
 
 
-@app.get("/egress/{egress_id}/{file_id}")
+@router.get("/egress/{egress_id}/{file_id}")
 async def get_file(egress_id: str, file_id: str):
     content, content_type, content_disposition = await download_file(egress_id, file_id)
 
@@ -47,13 +49,18 @@ async def get_file(egress_id: str, file_id: str):
     return Response(content=content, media_type=content_type, headers=headers)
 
 
-@app.put("/egress/{egress_id}")
+@router.put("/egress/{egress_id}")
 async def approve_files(egress_id: str, body: dict[str, FileAction]):
     approved_ids = [
         file_id for file_id, action in body.items() if action == FileAction.approve
     ]
-    results = await asyncio.gather(
-        *[approve_file(egress_id, fid) for fid in approved_ids]
-    )
-    all_success = all(r.get("message") == "success" for r in results)
-    return all_success
+    try:
+        await asyncio.gather(
+            *[approve_file(egress_id, fid) for fid in approved_ids]
+        )
+
+        return {"message": "success"}
+    except Exception as e:
+        raise e
+    
+app.include_router(router)
