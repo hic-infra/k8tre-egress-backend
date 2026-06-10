@@ -7,3 +7,9 @@ class FileItem(BaseModel):
     file_name: str
     id: str
     size: int
+
+
+class TokenPayload(BaseModel):
+    projectId: str
+    userId: int
+    bucketId: str

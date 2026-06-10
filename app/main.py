@@ -1,8 +1,11 @@
 import asyncio
 from enum import Enum
 
-from fastapi import APIRouter, Depends, FastAPI, Response
+from fastapi import APIRouter, Depends, FastAPI, HTTPException, Response
+import jwt
+from pydantic import ValidationError
 from app.api import approve_file, download_file, get_files, verify_token
+from app.schemas import TokenPayload
 from app.settings import Settings
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -30,9 +33,16 @@ def read_root():
     return {"Hello": "World"}
 
 
-@router.get("/egress/{egress_id}")
-async def get_egress(egress_id: str, claims=Depends(verify_token)):
-    return await get_files(egress_id)
+@router.get("/egress/{token}")
+async def get_egress(token: str, claims=Depends(verify_token)):
+    try:
+        raw = jwt.decode(token, settings.secret_key, algorithms="HS256")
+        payload = TokenPayload.model_validate(raw)
+        return await get_files(payload.projectId, payload.bucketId)
+    except ValidationError:
+        raise HTTPException(status_code=401, detail="Invalid token claims")
+    except jwt.DecodeError as e:
+        raise HTTPException(status_code=401, detail=str(e))
 
 
 @router.get("/egress/{egress_id}/{file_id}")

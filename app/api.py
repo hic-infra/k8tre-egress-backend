@@ -9,7 +9,8 @@ from app.exceptions import EgressServiceError
 from app.schemas import FileItem
 from app.settings import settings
 
-keycloak_bearer_scheme = HTTPBearer()
+keycloak_bearer_scheme = HTTPBearer() if not settings.disable_auth else lambda: None
+
 keycloak_openid = KeycloakOpenID(
     server_url=settings.keycloak_url,
     client_id=settings.keycloak_client_id,
@@ -17,15 +18,16 @@ keycloak_openid = KeycloakOpenID(
 )
 
 
-async def get_files(project_id: str) -> list[FileItem]:
+async def get_files(project_id: str, bucket_id: str) -> list[FileItem]:
     async with httpx.AsyncClient() as client:
         response = await client.request(
             "GET",
             f"{settings.egress_app_url}{project_id}/files",
             auth=(settings.egress_username, settings.egress_password),
-            json={"files_location": "s3://test-bucket"},
+            json={"files_location": f"s3://{bucket_id}"},
         )
-    return TypeAdapter(list[FileItem]).validate_json(response.content)
+        print(response.text)
+        return TypeAdapter(list[FileItem]).validate_json(response.content)
 
 
 async def download_file(project_id: str, file_id: str):
@@ -64,6 +66,8 @@ async def approve_file(project_id: str, file_id: str) -> bool:
 async def verify_token(
     credentials: HTTPAuthorizationCredentials = Depends(keycloak_bearer_scheme),
 ) -> dict:
+    if credentials is None and settings.disable_auth:
+        return {"sub": "dev-user"}
     token = credentials.credentials
     try:
         options = {"verify_signature": True, "verify_aud": False, "verify_exp": True}

@@ -42,3 +42,7 @@ def test_protected_get_with_invalid_token():
 def test_protected_get_with_valid_token(authed_client):
     response = authed_client.get("/egress/1")
     assert response.status_code == 200
+
+def test_egress_get_with_jwt(authed_client):
+    response = authed_client.get("/egress/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJwcm9qZWN0SWQiOjEsInVzZXJJZCI6MSwiYnVja2V0SWQiOiJ0ZXN0LWJ1Y2tldCJ9.yj_Jbei6L5z9sh_ANEM9-AgI61ggEckOQGFmYPqPjNo")
+    assert response.status_code == 200
