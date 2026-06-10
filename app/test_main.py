@@ -1,6 +1,10 @@
+import secrets
+
 from fastapi.testclient import TestClient
+import jwt
 import pytest
 
+from app.settings import settings
 from app.api import verify_token
 from .main import app
 
@@ -38,11 +42,24 @@ def test_protected_get_with_invalid_token():
     response = client.get("/egress/1", headers={"Authorization": "Bearer sometoken"})
     assert response.status_code == 401
 
+def test_egress_get_with_invalid_jwt(authed_client):
+    dct = {
+        "projectId": "1",
+        "userId": 1,
+        "bucketId": "test-bucket"
+    }
+    key = secrets.token_hex(32)
+    token = jwt.encode(dct, key)
+    response = authed_client.get(f"/egress/{token}")
+    assert response.status_code == 401
 
-def test_protected_get_with_valid_token(authed_client):
-    response = authed_client.get("/egress/1")
-    assert response.status_code == 200
+def test_egress_get_with_valid_jwt(authed_client):
+    dct = {
+        "projectId": "1",
+        "userId": 1,
+        "bucketId": "test-bucket"
+    }
 
-def test_egress_get_with_jwt(authed_client):
-    response = authed_client.get("/egress/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJwcm9qZWN0SWQiOjEsInVzZXJJZCI6MSwiYnVja2V0SWQiOiJ0ZXN0LWJ1Y2tldCJ9.yj_Jbei6L5z9sh_ANEM9-AgI61ggEckOQGFmYPqPjNo")
+    token = jwt.encode(dct, settings.secret_key)
+    response = authed_client.get(f"/egress/{token}")
     assert response.status_code == 200
