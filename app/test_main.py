@@ -63,3 +63,15 @@ def test_egress_get_with_valid_jwt(authed_client):
     token = jwt.encode(dct, settings.secret_key)
     response = authed_client.get(f"/egress/{token}")
     assert response.status_code == 200
+
+def test_egress_put_with_valid_jwt(authed_client):
+    dct = {
+        "projectId": "1",
+        "userId": 1,
+        "bucketId": "test-bucket"
+    }
+
+    token = jwt.encode(dct, settings.secret_key)
+    body = {"9f73a22f56b8d659393b7b00f42d7386":"approve"}
+    response = authed_client.put(f"/egress/{token}", body)
+    assert response.status_code == 200

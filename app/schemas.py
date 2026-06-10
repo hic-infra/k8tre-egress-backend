@@ -1,3 +1,4 @@
+from enum import Enum
 from typing import Optional
 from pydantic import BaseModel
 
@@ -13,3 +14,7 @@ class TokenPayload(BaseModel):
     projectId: str
     userId: int
     bucketId: str
+
+class FileAction(str, Enum):
+    approve = "approve"
+    reject = "reject"
