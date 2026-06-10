@@ -4,8 +4,8 @@ from fastapi.testclient import TestClient
 import jwt
 import pytest
 
+from app.api import verify_keycloak_token
 from app.settings import settings
-from app.api import verify_token
 from .main import app
 
 client = TestClient(app)
@@ -17,7 +17,7 @@ def mock_verify_token():
 
 @pytest.fixture
 def authed_client():
-    app.dependency_overrides[verify_token] = lambda: {"preferred_username": "testuser"}
+    app.dependency_overrides[verify_keycloak_token] = lambda: {"preferred_username": "testuser"}
     yield TestClient(app)
     app.dependency_overrides.clear()
 
@@ -73,5 +73,5 @@ def test_egress_put_with_valid_jwt(authed_client):
 
     token = jwt.encode(dct, settings.secret_key)
     body = {"9f73a22f56b8d659393b7b00f42d7386":"approve"}
-    response = authed_client.put(f"/egress/{token}", body)
+    response = authed_client.put(f"/egress/{token}", json=body)
     assert response.status_code == 200
