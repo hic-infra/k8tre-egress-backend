@@ -1,18 +1,12 @@
 import asyncio
-from enum import Enum
-
-from fastapi import APIRouter, Depends, FastAPI, Response
-from app.api import approve_file, download_file, get_files, verify_token
-from app.settings import Settings
+from fastapi import APIRouter, Depends, FastAPI, HTTPException, Response
+import jwt
+from pydantic import ValidationError
+from app.api import approve_file, decode_token, download_file, get_files, verify_keycloak_token
+from app.schemas import FileAction, TokenPayload
+from app.settings import settings
 from fastapi.middleware.cors import CORSMiddleware
 
-
-class FileAction(str, Enum):
-    approve = "approve"
-    reject = "reject"
-
-
-settings = Settings()
 app = FastAPI()
 
 app.add_middleware(
@@ -22,7 +16,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-router = APIRouter(dependencies=[Depends(verify_token)])
+router = APIRouter(dependencies=[Depends(verify_keycloak_token)])
 
 
 @app.get("/")
@@ -30,14 +24,15 @@ def read_root():
     return {"Hello": "World"}
 
 
-@router.get("/egress/{egress_id}")
-async def get_egress(egress_id: str, claims=Depends(verify_token)):
-    return await get_files(egress_id)
+@router.get("/egress/{token}")
+async def get_egress(token: str):
+    payload = decode_token(token)
+    return await get_files(payload.projectId, payload.bucketId)
 
-
-@router.get("/egress/{egress_id}/{file_id}")
-async def get_file(egress_id: str, file_id: str):
-    content, content_type, content_disposition = await download_file(egress_id, file_id)
+@router.get("/egress/{token}/{file_id}")
+async def get_file(token: str, file_id: str):
+    payload = decode_token(token)
+    content, content_type, content_disposition = await download_file(payload.projectId, payload.bucketId, file_id)
 
     headers = {
         "Content-Disposition": content_disposition
@@ -47,13 +42,14 @@ async def get_file(egress_id: str, file_id: str):
     return Response(content=content, media_type=content_type, headers=headers)
 
 
-@router.put("/egress/{egress_id}")
-async def approve_files(egress_id: str, body: dict[str, FileAction]):
+@router.put("/egress/{token}")
+async def approve_files(token: str, body: dict[str, FileAction]):
+    payload = decode_token(token)
     approved_ids = [
         file_id for file_id, action in body.items() if action == FileAction.approve
     ]
     try:
-        await asyncio.gather(*[approve_file(egress_id, fid) for fid in approved_ids])
+        await asyncio.gather(*[approve_file(payload.projectId, fid) for fid in approved_ids])
 
         return {"message": "success"}
     except Exception as e:
