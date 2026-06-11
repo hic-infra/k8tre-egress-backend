@@ -16,5 +16,5 @@ jobs:
       steps:
       - name: Run unit tests
         run: |
-          pip install pytest pytest-asyncio
+          pip install pytest
           python -m pytest .
