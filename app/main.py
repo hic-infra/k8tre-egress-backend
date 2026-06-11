@@ -1,7 +1,5 @@
 import asyncio
-from fastapi import APIRouter, Depends, FastAPI, HTTPException, Response
-import jwt
-from pydantic import ValidationError
+from fastapi import APIRouter, Depends, FastAPI, Response
 from app.api import (
     approve_file,
     decode_token,
@@ -9,7 +7,7 @@ from app.api import (
     get_files,
     verify_keycloak_token,
 )
-from app.schemas import FileAction, TokenPayload
+from app.schemas import FileAction
 from app.settings import settings
 from fastapi.middleware.cors import CORSMiddleware
 

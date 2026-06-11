@@ -1,3 +1,4 @@
+from contextlib import contextmanager
 import secrets
 
 from httpx import Response
@@ -25,15 +26,40 @@ def authed_client():
     yield TestClient(app)
     app.dependency_overrides.clear()
 
+
+@contextmanager
 def mock_ucl_egress_get(project_id):
-    with respx.mock(base_url=settings.egress_app_url, assert_all_called=False) as router:
-        router.get(f"/{project_id}/files").mock(return_value=Response(status_code=200, content=json.dumps({"id": "9f73a22f"}), headers={"content-type": "application/json"}))
+    with respx.mock(
+        base_url=settings.egress_app_url, assert_all_called=False
+    ) as router:
+        example = [
+            {
+                "id": "9f73a22f",
+                "file_name": "example.txt",
+                "size": 2000,
+                "approvals": [],
+            }
+        ]
+        router.get(f"/{project_id}/files").mock(
+            return_value=Response(
+                status_code=200,
+                content=json.dumps(example),
+                headers={"content-type": "application/json"},
+            )
+        )
         yield router
 
+
+@contextmanager
 def mock_ucl_egress_put(project_id, file_id):
-    with respx.mock(base_url=settings.egress_app_url, assert_all_called=False) as router:
-        router.put(f"/{project_id}/files/{file_id}/approve").mock(return_value=Response(204))
+    with respx.mock(
+        base_url=settings.egress_app_url, assert_all_called=False
+    ) as router:
+        router.put(f"/{project_id}/files/{file_id}/approve").mock(
+            return_value=Response(204)
+        )
         yield router
+
 
 def test_read_main():
     response = client.get("/")
@@ -71,7 +97,8 @@ def test_egress_get_with_valid_jwt(authed_client):
     dct = {"projectId": project_id, "userId": 1, "bucketId": "test-bucket"}
     mock_ucl_egress_get(project_id)
     token = jwt.encode(dct, settings.secret_key)
-    response = authed_client.get(f"/egress/{token}")
+    with mock_ucl_egress_get(project_id) as router:
+        response = authed_client.get(f"/egress/{token}")
     assert response.status_code == 200
 
 
@@ -79,8 +106,8 @@ def test_egress_put_with_valid_jwt(authed_client):
     project_id = "1"
     file_id = "9f73a22f"
     dct = {"projectId": project_id, "userId": 1, "bucketId": "test-bucket"}
-    mock_ucl_egress_put(project_id, file_id)
     token = jwt.encode(dct, settings.secret_key)
     body = {file_id: "approve"}
-    response = authed_client.put(f"/egress/{token}", json=body)
+    with mock_ucl_egress_put(project_id, file_id) as router:
+        response = authed_client.put(f"/egress/{token}", json=body)
     assert response.status_code == 200
