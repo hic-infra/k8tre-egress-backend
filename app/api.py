@@ -20,48 +20,63 @@ keycloak_openid = KeycloakOpenID(
 
 
 async def get_files(project_id: str, bucket_id: str) -> list[FileItem]:
-    async with httpx.AsyncClient() as client:
-        response = await client.request(
-            "GET",
-            f"{settings.egress_app_url}{project_id}/files",
-            auth=(settings.egress_username, settings.egress_password),
-            json={"files_location": f"s3://{bucket_id}"},
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.request(
+                "GET",
+                f"{settings.egress_app_url}{project_id}/files",
+                auth=(settings.egress_username, settings.egress_password),
+                json={"files_location": f"s3://{bucket_id}"},
+            )
+            print(response.text)
+            return TypeAdapter(list[FileItem]).validate_json(response.content)
+    except httpx.HTTPError as e:
+        raise HTTPException(
+            status_code=500, detail=f"Upstream Egress app unreachable: {e}"
         )
-        print(response.text)
-        return TypeAdapter(list[FileItem]).validate_json(response.content)
 
 
 async def download_file(project_id: str, bucket_id: str, file_id: str):
-    async with httpx.AsyncClient() as client:
-        response = await client.request(
-            "GET",
-            f"{settings.egress_app_url}{project_id}/files/{file_id}",
-            auth=(settings.egress_username, settings.egress_password),
-            json={
-                "files_location": f"s3://{bucket_id}",
-                "max_file_size": 1000,
-                "destination": "/",
-            },
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.request(
+                "GET",
+                f"{settings.egress_app_url}{project_id}/files/{file_id}",
+                auth=(settings.egress_username, settings.egress_password),
+                json={
+                    "files_location": f"s3://{bucket_id}",
+                    "max_file_size": 1000,
+                    "destination": "/",
+                },
+            )
+        return (
+            response.content,
+            response.headers.get("content-type", "application/octet-stream"),
+            response.headers.get("content-disposition"),
         )
-    return (
-        response.content,
-        response.headers.get("content-type", "application/octet-stream"),
-        response.headers.get("content-disposition"),
-    )
+    except httpx.HTTPError as e:
+        raise HTTPException(
+            status_code=500, detail=f"Upstream Egress app unreachable: {e}"
+        )
 
 
 async def approve_file(project_id: str, file_id: str) -> bool:
-    async with httpx.AsyncClient() as client:
-        response = await client.request(
-            "PUT",
-            f"{settings.egress_app_url}{project_id}/files/{file_id}/approve",
-            auth=(settings.egress_username, settings.egress_password),
-            json={"user_id": "1", "destination": "/"},
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.request(
+                "PUT",
+                f"{settings.egress_app_url}{project_id}/files/{file_id}/approve",
+                auth=(settings.egress_username, settings.egress_password),
+                json={"user_id": "1", "destination": "/"},
+            )
+        if response.status_code == 204:
+            return True
+        else:
+            raise EgressServiceError(response.status_code, response.json())
+    except httpx.HTTPError as e:
+        raise HTTPException(
+            status_code=500, detail=f"Upstream Egress app unreachable: {e}"
         )
-    if response.status_code == 204:
-        return True
-    else:
-        raise EgressServiceError(response.status_code, response.json())
 
 
 async def verify_keycloak_token(
@@ -80,7 +95,8 @@ async def verify_keycloak_token(
             detail=f"Invalid token: {e}",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    
+
+
 def decode_token(token: str):
     try:
         raw = jwt.decode(token, settings.secret_key, algorithms="HS256")

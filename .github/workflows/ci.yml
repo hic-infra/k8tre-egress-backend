@@ -1,0 +1,40 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: psf/black@stable
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Create env file
+        run: |
+          touch .env
+          echo egress_app_url=${{ vars.EGRESS_APP_URL }} >> .env
+          echo fe_url=${{ vars.FE_URL }} >> .env
+          echo secret_key=${{ secrets.SECRET_KEY }} >> .env
+          echo egress_username=${{ vars.EGRESS_USERNAME }} >> .env
+          echo egress_password=${{ secrets.EGRESS_PASSWORD }} >> .env
+          echo disable_auth=${{ vars.DISABLE_AUTH }} >> .env
+          echo keycloak_url=${{ vars.KEYCLOAK_URL }} >> .env
+          echo keycloak_realm=${{ vars.KEYCLOAK_REALM }} >> .env
+          echo keycloak_client_id=${{ vars.KEYCLOAK_CLIENT_ID }} >> .env
+
+      - name: Run unit tests
+        run: python -m pytest .
