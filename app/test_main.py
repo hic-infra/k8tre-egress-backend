@@ -1,9 +1,11 @@
 import secrets
 
+from httpx import Response
 from fastapi.testclient import TestClient
 import jwt
 import pytest
-
+import respx
+import json
 from app.api import verify_keycloak_token
 from app.settings import settings
 from .main import app
@@ -23,6 +25,15 @@ def authed_client():
     yield TestClient(app)
     app.dependency_overrides.clear()
 
+def mock_ucl_egress_get(project_id):
+    with respx.mock(base_url=settings.egress_app_url, assert_all_called=False) as router:
+        router.get(f"/{project_id}/files").mock(return_value=Response(status_code=200, content=json.dumps({"id": "9f73a22f"}), headers={"content-type": "application/json"}))
+        yield router
+
+def mock_ucl_egress_put(project_id, file_id):
+    with respx.mock(base_url=settings.egress_app_url, assert_all_called=False) as router:
+        router.put(f"/{project_id}/files/{file_id}/approve").mock(return_value=Response(204))
+        yield router
 
 def test_read_main():
     response = client.get("/")
@@ -46,7 +57,9 @@ def test_protected_get_with_invalid_token():
 
 
 def test_egress_get_with_invalid_jwt(authed_client):
-    dct = {"projectId": "1", "userId": 1, "bucketId": "test-bucket"}
+    project_id = "1"
+    dct = {"projectId": project_id, "userId": 1, "bucketId": "test-bucket"}
+    mock_ucl_egress_get(project_id)
     key = secrets.token_hex(32)
     token = jwt.encode(dct, key)
     response = authed_client.get(f"/egress/{token}")
@@ -54,17 +67,20 @@ def test_egress_get_with_invalid_jwt(authed_client):
 
 
 def test_egress_get_with_valid_jwt(authed_client):
-    dct = {"projectId": "1", "userId": 1, "bucketId": "test-bucket"}
-
+    project_id = "1"
+    dct = {"projectId": project_id, "userId": 1, "bucketId": "test-bucket"}
+    mock_ucl_egress_get(project_id)
     token = jwt.encode(dct, settings.secret_key)
     response = authed_client.get(f"/egress/{token}")
     assert response.status_code == 200
 
 
 def test_egress_put_with_valid_jwt(authed_client):
-    dct = {"projectId": "1", "userId": 1, "bucketId": "test-bucket"}
-
+    project_id = "1"
+    file_id = "9f73a22f"
+    dct = {"projectId": project_id, "userId": 1, "bucketId": "test-bucket"}
+    mock_ucl_egress_put(project_id, file_id)
     token = jwt.encode(dct, settings.secret_key)
-    body = {"9f73a22f56b8d659393b7b00f42d7386": "approve"}
+    body = {file_id: "approve"}
     response = authed_client.put(f"/egress/{token}", json=body)
     assert response.status_code == 200
