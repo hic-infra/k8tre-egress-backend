@@ -1,7 +1,7 @@
 from contextlib import contextmanager
 import secrets
 
-from httpx import Response
+from httpx import ConnectError, Response
 from fastapi.testclient import TestClient
 import jwt
 import pytest
@@ -60,6 +60,13 @@ def mock_ucl_egress_put(project_id, file_id):
         )
         yield router
 
+@contextmanager
+def mock_ucl_egress_fail():
+    with respx.mock(
+        base_url=settings.egress_app_url, assert_all_called=False
+    ) as router:
+        router.put().mock(side_effect=ConnectError("connection failed"))
+        yield router
 
 def test_read_main():
     response = client.get("/")
@@ -99,7 +106,7 @@ def test_egress_get_with_valid_jwt(authed_client):
     token = jwt.encode(dct, settings.secret_key)
     with mock_ucl_egress_get(project_id) as router:
         response = authed_client.get(f"/egress/{token}")
-    assert response.status_code == 200
+        assert response.status_code == 200
 
 
 def test_egress_put_with_valid_jwt(authed_client):
@@ -110,4 +117,14 @@ def test_egress_put_with_valid_jwt(authed_client):
     body = {file_id: "approve"}
     with mock_ucl_egress_put(project_id, file_id) as router:
         response = authed_client.put(f"/egress/{token}", json=body)
-    assert response.status_code == 200
+        assert response.status_code == 200
+
+def test_egress_put_fail(authed_client):
+    project_id = "1"
+    file_id = "9f73a22f"
+    dct = {"projectId": project_id, "userId": 1, "bucketId": "test-bucket"}
+    token = jwt.encode(dct, settings.secret_key)
+    body = {file_id: "approve"}
+    with mock_ucl_egress_fail() as router:
+        response = authed_client.put(f"/egress/{token}", json=body)
+        assert response.status_code == 500
