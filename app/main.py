@@ -2,7 +2,13 @@ import asyncio
 from fastapi import APIRouter, Depends, FastAPI, HTTPException, Response
 import jwt
 from pydantic import ValidationError
-from app.api import approve_file, decode_token, download_file, get_files, verify_keycloak_token
+from app.api import (
+    approve_file,
+    decode_token,
+    download_file,
+    get_files,
+    verify_keycloak_token,
+)
 from app.schemas import FileAction, TokenPayload
 from app.settings import settings
 from fastapi.middleware.cors import CORSMiddleware
@@ -29,10 +35,13 @@ async def get_egress(token: str):
     payload = decode_token(token)
     return await get_files(payload.projectId, payload.bucketId)
 
+
 @router.get("/egress/{token}/{file_id}")
 async def get_file(token: str, file_id: str):
     payload = decode_token(token)
-    content, content_type, content_disposition = await download_file(payload.projectId, payload.bucketId, file_id)
+    content, content_type, content_disposition = await download_file(
+        payload.projectId, payload.bucketId, file_id
+    )
 
     headers = {
         "Content-Disposition": content_disposition
@@ -49,7 +58,9 @@ async def approve_files(token: str, body: dict[str, FileAction]):
         file_id for file_id, action in body.items() if action == FileAction.approve
     ]
     try:
-        await asyncio.gather(*[approve_file(payload.projectId, fid) for fid in approved_ids])
+        await asyncio.gather(
+            *[approve_file(payload.projectId, fid) for fid in approved_ids]
+        )
 
         return {"message": "success"}
     except Exception as e:

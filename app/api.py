@@ -80,7 +80,8 @@ async def verify_keycloak_token(
             detail=f"Invalid token: {e}",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    
+
+
 def decode_token(token: str):
     try:
         raw = jwt.decode(token, settings.secret_key, algorithms="HS256")
