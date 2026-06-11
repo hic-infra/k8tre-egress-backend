@@ -60,6 +60,7 @@ def mock_ucl_egress_put(project_id, file_id):
         )
         yield router
 
+
 @contextmanager
 def mock_ucl_egress_fail():
     with respx.mock(
@@ -67,6 +68,7 @@ def mock_ucl_egress_fail():
     ) as router:
         router.put().mock(side_effect=ConnectError("connection failed"))
         yield router
+
 
 def test_read_main():
     response = client.get("/")
@@ -118,6 +120,7 @@ def test_egress_put_with_valid_jwt(authed_client):
     with mock_ucl_egress_put(project_id, file_id) as router:
         response = authed_client.put(f"/egress/{token}", json=body)
         assert response.status_code == 200
+
 
 def test_egress_put_fail(authed_client):
     project_id = "1"

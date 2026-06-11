@@ -31,7 +31,10 @@ async def get_files(project_id: str, bucket_id: str) -> list[FileItem]:
             print(response.text)
             return TypeAdapter(list[FileItem]).validate_json(response.content)
     except httpx.HTTPError as e:
-        raise HTTPException(status_code=500, detail=f"Upstream Egress app unreachable: {e}")
+        raise HTTPException(
+            status_code=500, detail=f"Upstream Egress app unreachable: {e}"
+        )
+
 
 async def download_file(project_id: str, bucket_id: str, file_id: str):
     try:
@@ -52,7 +55,10 @@ async def download_file(project_id: str, bucket_id: str, file_id: str):
             response.headers.get("content-disposition"),
         )
     except httpx.HTTPError as e:
-        raise HTTPException(status_code=500, detail=f"Upstream Egress app unreachable: {e}")
+        raise HTTPException(
+            status_code=500, detail=f"Upstream Egress app unreachable: {e}"
+        )
+
 
 async def approve_file(project_id: str, file_id: str) -> bool:
     try:
@@ -68,7 +74,10 @@ async def approve_file(project_id: str, file_id: str) -> bool:
         else:
             raise EgressServiceError(response.status_code, response.json())
     except httpx.HTTPError as e:
-        raise HTTPException(status_code=500, detail=f"Upstream Egress app unreachable: {e}")
+        raise HTTPException(
+            status_code=500, detail=f"Upstream Egress app unreachable: {e}"
+        )
+
 
 async def verify_keycloak_token(
     credentials: HTTPAuthorizationCredentials = Depends(keycloak_bearer_scheme),
