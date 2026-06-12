@@ -9,13 +9,9 @@ import respx
 import json
 from app.api import verify_keycloak_token
 from app.settings import settings
-from .main import app
+from ..main import app
 
 client = TestClient(app)
-
-
-def mock_verify_token():
-    return {"preferred_username": "testuser", "realm_access": {"roles": ["user"]}}
 
 
 @pytest.fixture
@@ -94,7 +90,6 @@ def test_protected_get_with_invalid_token():
 def test_egress_get_with_invalid_jwt(authed_client):
     project_id = "1"
     dct = {"projectId": project_id, "userId": 1, "bucketId": "test-bucket"}
-    mock_ucl_egress_get(project_id)
     key = secrets.token_hex(32)
     token = jwt.encode(dct, key)
     response = authed_client.get(f"/egress/{token}")
@@ -104,7 +99,6 @@ def test_egress_get_with_invalid_jwt(authed_client):
 def test_egress_get_with_valid_jwt(authed_client):
     project_id = "1"
     dct = {"projectId": project_id, "userId": 1, "bucketId": "test-bucket"}
-    mock_ucl_egress_get(project_id)
     token = jwt.encode(dct, settings.secret_key)
     with mock_ucl_egress_get(project_id) as router:
         response = authed_client.get(f"/egress/{token}")

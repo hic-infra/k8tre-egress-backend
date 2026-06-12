@@ -12,7 +12,7 @@ class FileItem(BaseModel):
 
 class TokenPayload(BaseModel):
     projectId: str
-    userId: int
+    userId: str
     bucketId: str
 
 

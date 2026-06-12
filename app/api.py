@@ -28,10 +28,16 @@ async def get_files(project_id: str, bucket_id: str) -> list[FileItem]:
                 auth=(settings.egress_username, settings.egress_password),
                 json={"files_location": f"s3://{bucket_id}"},
             )
+                    
             return TypeAdapter(list[FileItem]).validate_json(response.content)
+        
     except httpx.HTTPError as e:
         raise EgressConnectionError(
             status_code=502, detail=f"Upstream Egress app unreachable: {e}"
+        )
+    except ValidationError as e:
+        raise EgressServiceError(
+            status_code=502, detail=f"Unexpected response from Egress app: {e}"
         )
 
 
@@ -68,10 +74,12 @@ async def approve_file(project_id: str, user_id: str, file_id: str) -> bool:
                 auth=(settings.egress_username, settings.egress_password),
                 json={"user_id": user_id, "destination": "/"},
             )
+
+        print(response.text)
         if response.status_code == 204:
             return True
         else:
-            raise EgressServiceError(status_code=500, detail=response.json())
+            raise EgressServiceError(status_code=502, detail=response.json())
     except httpx.HTTPError as e:
         raise EgressConnectionError(
             status_code=502, detail=f"Upstream Egress app unreachable: {e}"
@@ -87,10 +95,12 @@ async def reject_file(project_id: str, user_id: str, file_id: str) -> bool:
                 auth=(settings.egress_username, settings.egress_password),
                 json={"user_id": user_id, "destination": "/"},
             )
+        print(response.text)
+
         if response.status_code == 204:
             return True
         else:
-            raise EgressServiceError(status_code=500, detail=response.json())
+            raise EgressServiceError(status_code=502, detail=response.json())
     except httpx.HTTPError as e:
         raise EgressConnectionError(
             status_code=502, detail=f"Upstream Egress app unreachable: {e}"

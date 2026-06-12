@@ -37,7 +37,8 @@ async def get_egress(token: str):
         return await get_files(payload.projectId, payload.bucketId)
     except EgressConnectionError as e:
         raise HTTPException(status_code=502, detail=e.detail)
-
+    except EgressServiceError as e:
+        raise HTTPException(status_code=502, detail=e.detail)
 
 @router.get("/egress/{token}/{file_id}")
 async def get_file(token: str, file_id: str):
@@ -82,7 +83,7 @@ async def approve_reject_files(token: str, body: dict[str, FileAction]):
     except EgressConnectionError as e:
         raise HTTPException(status_code=502, detail=e.detail)
     except EgressServiceError as e:
-        raise e
+        raise HTTPException(status_code=502, detail=e.detail)
 
 
 app.include_router(router)
