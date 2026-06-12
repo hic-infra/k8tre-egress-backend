@@ -1,12 +1,14 @@
 import asyncio
-from fastapi import APIRouter, Depends, FastAPI, Response
+from fastapi import APIRouter, Depends, FastAPI, HTTPException, Response
 from app.api import (
     approve_file,
     decode_token,
     download_file,
     get_files,
+    reject_file,
     verify_keycloak_token,
 )
+from app.exceptions import EgressServiceError
 from app.schemas import FileAction
 from app.settings import settings
 from fastapi.middleware.cors import CORSMiddleware
@@ -30,8 +32,11 @@ def read_root():
 
 @router.get("/egress/{token}")
 async def get_egress(token: str):
-    payload = decode_token(token)
-    return await get_files(payload.projectId, payload.bucketId)
+    try:
+        payload = decode_token(token)
+        return await get_files(payload.projectId, payload.bucketId)
+    except EgressServiceError as e:
+        raise HTTPException(status_code=502, detail=e.detail)        
 
 
 @router.get("/egress/{token}/{file_id}")
@@ -50,18 +55,25 @@ async def get_file(token: str, file_id: str):
 
 
 @router.put("/egress/{token}")
-async def approve_files(token: str, body: dict[str, FileAction]):
+async def approve_reject_files(token: str, body: dict[str, FileAction]):
     payload = decode_token(token)
     approved_ids = [
         file_id for file_id, action in body.items() if action == FileAction.approve
     ]
+    reject_ids = [
+        file_id for file_id, action in body.items() if action == FileAction.reject
+    ]
     try:
         await asyncio.gather(
-            *[approve_file(payload.projectId, fid) for fid in approved_ids]
+            *[approve_file(payload.projectId, payload.userId, fid) for fid in approved_ids]
+        )
+
+        await asyncio.gather(
+            *[reject_file(payload.projectId, payload.userId, fid) for fid in reject_ids]
         )
 
         return {"message": "success"}
-    except Exception as e:
+    except EgressServiceError as e:
         raise e
 
 
