@@ -7,8 +7,8 @@ import jwt
 import pytest
 import respx
 import json
-from app.api import verify_keycloak_token
 from app.settings import settings
+from app.api import verify_keycloak_token
 from ..main import app
 
 client = TestClient(app)
@@ -98,7 +98,7 @@ def test_egress_get_with_invalid_jwt(authed_client):
 
 def test_egress_get_with_valid_jwt(authed_client):
     project_id = "1"
-    dct = {"projectId": project_id, "userId": 1, "bucketId": "test-bucket"}
+    dct = {"projectId": project_id, "userId": "user1", "bucketId": "test-bucket"}
     token = jwt.encode(dct, settings.secret_key)
     with mock_ucl_egress_get(project_id) as router:
         response = authed_client.get(f"/egress/{token}")
@@ -108,7 +108,7 @@ def test_egress_get_with_valid_jwt(authed_client):
 def test_egress_put_with_valid_jwt(authed_client):
     project_id = "1"
     file_id = "9f73a22f"
-    dct = {"projectId": project_id, "userId": 1, "bucketId": "test-bucket"}
+    dct = {"projectId": project_id, "userId": "user1", "bucketId": "test-bucket"}
     token = jwt.encode(dct, settings.secret_key)
     body = {file_id: "approve"}
     with mock_ucl_egress_put(project_id, file_id) as router:
@@ -119,7 +119,7 @@ def test_egress_put_with_valid_jwt(authed_client):
 def test_egress_put_fail(authed_client):
     project_id = "1"
     file_id = "9f73a22f"
-    dct = {"projectId": project_id, "userId": 1, "bucketId": "test-bucket"}
+    dct = {"projectId": project_id, "userId": "user1", "bucketId": "test-bucket"}
     token = jwt.encode(dct, settings.secret_key)
     body = {file_id: "approve"}
     with mock_ucl_egress_fail() as router:
