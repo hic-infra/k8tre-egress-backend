@@ -7,6 +7,7 @@ import pytest
 
 from app import settings
 
+
 @pytest.mark.integration
 def test_egress_get_live(authed_client):
     project_id = "1"
@@ -14,6 +15,7 @@ def test_egress_get_live(authed_client):
     token = jwt.encode(dct, settings.secret_key)
     response = authed_client.get(f"/egress/{token}")
     assert response.status_code == 200
+
 
 @pytest.mark.integration
 def test_egress_put_live():

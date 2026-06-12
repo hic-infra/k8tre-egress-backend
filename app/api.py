@@ -28,9 +28,9 @@ async def get_files(project_id: str, bucket_id: str) -> list[FileItem]:
                 auth=(settings.egress_username, settings.egress_password),
                 json={"files_location": f"s3://{bucket_id}"},
             )
-                    
+
             return TypeAdapter(list[FileItem]).validate_json(response.content)
-        
+
     except httpx.HTTPError as e:
         raise EgressConnectionError(
             status_code=502, detail=f"Upstream Egress app unreachable: {e}"

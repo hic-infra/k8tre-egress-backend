@@ -40,6 +40,7 @@ async def get_egress(token: str):
     except EgressServiceError as e:
         raise HTTPException(status_code=502, detail=e.detail)
 
+
 @router.get("/egress/{token}/{file_id}")
 async def get_file(token: str, file_id: str):
     try:
