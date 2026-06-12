@@ -8,7 +8,7 @@ from app.api import (
     reject_file,
     verify_keycloak_token,
 )
-from app.exceptions import EgressServiceError
+from app.exceptions import EgressConnectionError, EgressServiceError
 from app.schemas import FileAction
 from app.settings import settings
 from fastapi.middleware.cors import CORSMiddleware
@@ -35,23 +35,26 @@ async def get_egress(token: str):
     try:
         payload = decode_token(token)
         return await get_files(payload.projectId, payload.bucketId)
-    except EgressServiceError as e:
+    except EgressConnectionError as e:
         raise HTTPException(status_code=502, detail=e.detail)
 
 
 @router.get("/egress/{token}/{file_id}")
 async def get_file(token: str, file_id: str):
-    payload = decode_token(token)
-    content, content_type, content_disposition = await download_file(
-        payload.projectId, payload.bucketId, file_id
-    )
+    try:
+        payload = decode_token(token)
+        content, content_type, content_disposition = await download_file(
+            payload.projectId, payload.bucketId, file_id
+        )
 
-    headers = {
-        "Content-Disposition": content_disposition
-        or f'attachment; filename="{file_id}"'
-    }
+        headers = {
+            "Content-Disposition": content_disposition
+            or f'attachment; filename="{file_id}"'
+        }
 
-    return Response(content=content, media_type=content_type, headers=headers)
+        return Response(content=content, media_type=content_type, headers=headers)
+    except EgressConnectionError as e:
+        raise HTTPException(status_code=502, detail=e.detail)
 
 
 @router.put("/egress/{token}")
@@ -76,6 +79,8 @@ async def approve_reject_files(token: str, body: dict[str, FileAction]):
         )
 
         return {"message": "success"}
+    except EgressConnectionError as e:
+        raise HTTPException(status_code=502, detail=e.detail)
     except EgressServiceError as e:
         raise e
 

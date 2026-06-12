@@ -6,7 +6,7 @@ import httpx
 import jwt
 from keycloak import KeycloakOpenID
 from pydantic import TypeAdapter, ValidationError
-from app.exceptions import EgressServiceError
+from app.exceptions import EgressConnectionError, EgressServiceError
 from app.schemas import FileItem, TokenPayload
 from app.settings import settings
 
@@ -30,7 +30,7 @@ async def get_files(project_id: str, bucket_id: str) -> list[FileItem]:
             )
             return TypeAdapter(list[FileItem]).validate_json(response.content)
     except httpx.HTTPError as e:
-        raise EgressServiceError(
+        raise EgressConnectionError(
             status_code=502, detail=f"Upstream Egress app unreachable: {e}"
         )
 
@@ -54,7 +54,7 @@ async def download_file(project_id: str, bucket_id: str, file_id: str):
             response.headers.get("content-disposition"),
         )
     except httpx.HTTPError as e:
-        raise EgressServiceError(
+        raise EgressConnectionError(
             status_code=502, detail=f"Upstream Egress app unreachable: {e}"
         )
 
@@ -73,7 +73,7 @@ async def approve_file(project_id: str, user_id: str, file_id: str) -> bool:
         else:
             raise EgressServiceError(status_code=500, detail=response.json())
     except httpx.HTTPError as e:
-        raise EgressServiceError(
+        raise EgressConnectionError(
             status_code=502, detail=f"Upstream Egress app unreachable: {e}"
         )
 
@@ -92,7 +92,7 @@ async def reject_file(project_id: str, user_id: str, file_id: str) -> bool:
         else:
             raise EgressServiceError(status_code=500, detail=response.json())
     except httpx.HTTPError as e:
-        raise EgressServiceError(
+        raise EgressConnectionError(
             status_code=502, detail=f"Upstream Egress app unreachable: {e}"
         )
 

@@ -130,4 +130,4 @@ def test_egress_put_fail(authed_client):
     body = {file_id: "approve"}
     with mock_ucl_egress_fail() as router:
         response = authed_client.put(f"/egress/{token}", json=body)
-        assert response.status_code == 500
+        assert response.status_code == 502
