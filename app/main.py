@@ -36,7 +36,7 @@ async def get_egress(token: str):
         payload = decode_token(token)
         return await get_files(payload.projectId, payload.bucketId)
     except EgressServiceError as e:
-        raise HTTPException(status_code=502, detail=e.detail)        
+        raise HTTPException(status_code=502, detail=e.detail)
 
 
 @router.get("/egress/{token}/{file_id}")
@@ -65,7 +65,10 @@ async def approve_reject_files(token: str, body: dict[str, FileAction]):
     ]
     try:
         await asyncio.gather(
-            *[approve_file(payload.projectId, payload.userId, fid) for fid in approved_ids]
+            *[
+                approve_file(payload.projectId, payload.userId, fid)
+                for fid in approved_ids
+            ]
         )
 
         await asyncio.gather(
