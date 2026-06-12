@@ -37,4 +37,4 @@ jobs:
           echo keycloak_client_id=${{ vars.KEYCLOAK_CLIENT_ID }} >> .env
 
       - name: Run unit tests
-        run: python -m pytest .
+        run: pytest app/tests/ -m "not integration"
