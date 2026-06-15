@@ -54,6 +54,9 @@ def mock_ucl_egress_put(project_id, file_id):
         router.put(f"/{project_id}/files/{file_id}/approve").mock(
             return_value=Response(204)
         )
+        router.put(f"/{project_id}/files/{file_id}/reject").mock(
+            return_value=Response(204)
+        )
         yield router
 
 
@@ -105,23 +108,32 @@ def test_egress_get_with_valid_jwt(authed_client):
         assert response.status_code == 200
 
 
-def test_egress_put_with_valid_jwt(authed_client):
+def test_egress_approve_put_with_valid_jwt(authed_client):
     project_id = "1"
     file_id = "9f73a22f"
     dct = {"projectId": project_id, "userId": "user1", "bucketId": "test-bucket"}
     token = jwt.encode(dct, settings.secret_key)
-    body = {file_id: "approve"}
+    body = {file_id: {"status": "approve", "comment": ""}}
     with mock_ucl_egress_put(project_id, file_id) as router:
         response = authed_client.put(f"/egress/{token}", json=body)
         assert response.status_code == 200
 
+def test_egress_reject_put_with_valid_jwt(authed_client):
+    project_id = "1"
+    file_id = "9f73a22f"
+    dct = {"projectId": project_id, "userId": "user1", "bucketId": "test-bucket"}
+    token = jwt.encode(dct, settings.secret_key)
+    body = {file_id: {"status": "reject", "comment": ""}}
+    with mock_ucl_egress_put(project_id, file_id) as router:
+        response = authed_client.put(f"/egress/{token}", json=body)
+        assert response.status_code == 200
 
 def test_egress_put_fail(authed_client):
     project_id = "1"
     file_id = "9f73a22f"
     dct = {"projectId": project_id, "userId": "user1", "bucketId": "test-bucket"}
     token = jwt.encode(dct, settings.secret_key)
-    body = {file_id: "approve"}
+    body = {file_id: {"status": "approve", "comment": ""}}
     with mock_ucl_egress_fail() as router:
         response = authed_client.put(f"/egress/{token}", json=body)
         assert response.status_code == 502

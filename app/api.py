@@ -7,7 +7,7 @@ import jwt
 from keycloak import KeycloakOpenID
 from pydantic import TypeAdapter, ValidationError
 from app.exceptions import EgressConnectionError, EgressServiceError
-from app.schemas import FileItem, TokenPayload
+from app.schemas import FileAction, FileItem, TokenPayload
 from app.settings import settings
 
 keycloak_bearer_scheme = HTTPBearer() if not settings.disable_auth else lambda: None
@@ -28,7 +28,7 @@ async def get_files(project_id: str, bucket_id: str) -> list[FileItem]:
                 auth=(settings.egress_username, settings.egress_password),
                 json={"files_location": f"s3://{bucket_id}"},
             )
-
+            print(response.content)
             return TypeAdapter(list[FileItem]).validate_json(response.content)
 
     except httpx.HTTPError as e:
@@ -64,15 +64,20 @@ async def download_file(project_id: str, bucket_id: str, file_id: str):
             status_code=502, detail=f"Upstream Egress app unreachable: {e}"
         )
 
+async def set_file_status(project_id: str, user_id: str, file_id: str, action: FileAction, comment: str = "") -> bool:
+    url = ""
+    if action == FileAction.approve:
+        url = f"{settings.egress_app_url}{project_id}/files/{file_id}/approve"
+    elif action == FileAction.reject:
+        url = f"{settings.egress_app_url}{project_id}/files/{file_id}/reject"
 
-async def approve_file(project_id: str, user_id: str, file_id: str) -> bool:
-    try:
+    try:    
         async with httpx.AsyncClient() as client:
             response = await client.request(
                 "PUT",
-                f"{settings.egress_app_url}{project_id}/files/{file_id}/approve",
+                url,
                 auth=(settings.egress_username, settings.egress_password),
-                json={"user_id": user_id, "destination": "/"},
+                json={"user_id": user_id, "destination": "/", "comment" : comment},
             )
 
         print(response.text)
@@ -86,14 +91,35 @@ async def approve_file(project_id: str, user_id: str, file_id: str) -> bool:
         )
 
 
-async def reject_file(project_id: str, user_id: str, file_id: str) -> bool:
+async def approve_file(project_id: str, user_id: str, file_id: str, comment: str = "") -> bool:
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.request(
+                "PUT",
+                f"{settings.egress_app_url}{project_id}/files/{file_id}/approve",
+                auth=(settings.egress_username, settings.egress_password),
+                json={"user_id": user_id, "destination": "/", "comment" : comment},
+            )
+
+        print(response.text)
+        if response.status_code == 204:
+            return True
+        else:
+            raise EgressServiceError(status_code=502, detail=response.json())
+    except httpx.HTTPError as e:
+        raise EgressConnectionError(
+            status_code=502, detail=f"Upstream Egress app unreachable: {e}"
+        )
+
+
+async def reject_file(project_id: str, user_id: str, file_id: str, comment: str = "") -> bool:
     try:
         async with httpx.AsyncClient() as client:
             response = await client.request(
                 "PUT",
                 f"{settings.egress_app_url}{project_id}/files/{file_id}/reject",
                 auth=(settings.egress_username, settings.egress_password),
-                json={"user_id": user_id, "destination": "/"},
+                json={"user_id": user_id, "destination": "/", "comment" : comment},
             )
         print(response.text)
 

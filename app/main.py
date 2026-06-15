@@ -6,10 +6,11 @@ from app.api import (
     download_file,
     get_files,
     reject_file,
+    set_file_status,
     verify_keycloak_token,
 )
 from app.exceptions import EgressConnectionError, EgressServiceError
-from app.schemas import FileAction
+from app.schemas import FileAction, FileApproval
 from app.settings import settings
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -60,24 +61,13 @@ async def get_file(token: str, file_id: str):
 
 
 @router.put("/egress/{token}")
-async def approve_reject_files(token: str, body: dict[str, FileAction]):
+async def approve_reject_files(token: str, body: dict[str, FileApproval]):
     payload = decode_token(token)
-    approved_ids = [
-        file_id for file_id, action in body.items() if action == FileAction.approve
-    ]
-    reject_ids = [
-        file_id for file_id, action in body.items() if action == FileAction.reject
-    ]
     try:
         await asyncio.gather(
             *[
-                approve_file(payload.projectId, payload.userId, fid)
-                for fid in approved_ids
+                set_file_status(payload.projectId, payload.userId, fid, params.status, params.comment) for fid, params in body.items()
             ]
-        )
-
-        await asyncio.gather(
-            *[reject_file(payload.projectId, payload.userId, fid) for fid in reject_ids]
         )
 
         return {"message": "success"}
