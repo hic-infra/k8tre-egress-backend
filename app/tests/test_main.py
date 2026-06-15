@@ -118,6 +118,7 @@ def test_egress_approve_put_with_valid_jwt(authed_client):
         response = authed_client.put(f"/egress/{token}", json=body)
         assert response.status_code == 200
 
+
 def test_egress_reject_put_with_valid_jwt(authed_client):
     project_id = "1"
     file_id = "9f73a22f"
@@ -127,6 +128,7 @@ def test_egress_reject_put_with_valid_jwt(authed_client):
     with mock_ucl_egress_put(project_id, file_id) as router:
         response = authed_client.put(f"/egress/{token}", json=body)
         assert response.status_code == 200
+
 
 def test_egress_put_fail(authed_client):
     project_id = "1"

@@ -64,20 +64,23 @@ async def download_file(project_id: str, bucket_id: str, file_id: str):
             status_code=502, detail=f"Upstream Egress app unreachable: {e}"
         )
 
-async def set_file_status(project_id: str, user_id: str, file_id: str, action: FileAction, comment: str = "") -> bool:
+
+async def set_file_status(
+    project_id: str, user_id: str, file_id: str, action: FileAction, comment: str = ""
+) -> bool:
     url = ""
     if action == FileAction.approve:
         url = f"{settings.egress_app_url}{project_id}/files/{file_id}/approve"
     elif action == FileAction.reject:
         url = f"{settings.egress_app_url}{project_id}/files/{file_id}/reject"
 
-    try:    
+    try:
         async with httpx.AsyncClient() as client:
             response = await client.request(
                 "PUT",
                 url,
                 auth=(settings.egress_username, settings.egress_password),
-                json={"user_id": user_id, "destination": "/", "comment" : comment},
+                json={"user_id": user_id, "destination": "/", "comment": comment},
             )
 
         print(response.text)
@@ -91,14 +94,16 @@ async def set_file_status(project_id: str, user_id: str, file_id: str, action: F
         )
 
 
-async def approve_file(project_id: str, user_id: str, file_id: str, comment: str = "") -> bool:
+async def approve_file(
+    project_id: str, user_id: str, file_id: str, comment: str = ""
+) -> bool:
     try:
         async with httpx.AsyncClient() as client:
             response = await client.request(
                 "PUT",
                 f"{settings.egress_app_url}{project_id}/files/{file_id}/approve",
                 auth=(settings.egress_username, settings.egress_password),
-                json={"user_id": user_id, "destination": "/", "comment" : comment},
+                json={"user_id": user_id, "destination": "/", "comment": comment},
             )
 
         print(response.text)
@@ -112,14 +117,16 @@ async def approve_file(project_id: str, user_id: str, file_id: str, comment: str
         )
 
 
-async def reject_file(project_id: str, user_id: str, file_id: str, comment: str = "") -> bool:
+async def reject_file(
+    project_id: str, user_id: str, file_id: str, comment: str = ""
+) -> bool:
     try:
         async with httpx.AsyncClient() as client:
             response = await client.request(
                 "PUT",
                 f"{settings.egress_app_url}{project_id}/files/{file_id}/reject",
                 auth=(settings.egress_username, settings.egress_password),
-                json={"user_id": user_id, "destination": "/", "comment" : comment},
+                json={"user_id": user_id, "destination": "/", "comment": comment},
             )
         print(response.text)
 

@@ -66,7 +66,14 @@ async def approve_reject_files(token: str, body: dict[str, FileApproval]):
     try:
         await asyncio.gather(
             *[
-                set_file_status(payload.projectId, payload.userId, fid, params.status, params.comment) for fid, params in body.items()
+                set_file_status(
+                    payload.projectId,
+                    payload.userId,
+                    fid,
+                    params.status,
+                    params.comment,
+                )
+                for fid, params in body.items()
             ]
         )
 
