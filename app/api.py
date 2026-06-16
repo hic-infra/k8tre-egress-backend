@@ -28,7 +28,6 @@ async def get_files(project_id: str, bucket_id: str) -> list[FileItem]:
                 auth=(settings.egress_username, settings.egress_password),
                 json={"files_location": f"s3://{bucket_id}"},
             )
-            print(response.content)
             return TypeAdapter(list[FileItem]).validate_json(response.content)
 
     except httpx.HTTPError as e:
@@ -83,7 +82,6 @@ async def set_file_status(
                 json={"user_id": user_id, "destination": "/", "comment": comment},
             )
 
-        print(response.text)
         if response.status_code == 204:
             return True
         else:

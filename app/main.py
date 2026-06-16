@@ -63,6 +63,7 @@ async def get_file(token: str, file_id: str):
 @router.put("/egress/{token}")
 async def approve_reject_files(token: str, body: dict[str, FileApproval]):
     payload = decode_token(token)
+    print(body.items())
     try:
         await asyncio.gather(
             *[

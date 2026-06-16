@@ -30,6 +30,7 @@ def test_egress_get_live(authed_client):
     response = authed_client.get(f"/egress/{token}")
     assert response.status_code == 200
 
+
 @pytest.mark.integration
 def test_egress_approve_live(authed_client):
     """
@@ -40,7 +41,7 @@ def test_egress_approve_live(authed_client):
     token = jwt.encode(dct, settings.secret_key)
     response = authed_client.get(f"/egress/{token}")
     assert response.status_code == 200
-    
+
     res = response.json()
     assert len(res) > 0
     file_id = res[0]["id"]
