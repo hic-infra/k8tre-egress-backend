@@ -7,7 +7,7 @@ import jwt
 from keycloak import KeycloakOpenID
 from pydantic import TypeAdapter, ValidationError
 from app.exceptions import EgressConnectionError, EgressServiceError
-from app.schemas import FileItem, TokenPayload
+from app.schemas import FileItem, TokenPayload, UCLBEResponse
 from app.settings import settings
 
 keycloak_bearer_scheme = HTTPBearer() if not settings.disable_auth else lambda: None
@@ -52,14 +52,21 @@ async def download_file(project_id: str, bucket_id: str, file_id: str):
                     "files_location": f"s3://{bucket_id}",
                     "max_file_size": 10000000000,
                     "destination": "/",
-                    "num_approvals": settings.num_approvals,
+                    "required_approvals": settings.required_approvals,
                 },
             )
-        return (
-            response.content,
-            response.headers.get("content-type", "application/octet-stream"),
-            response.headers.get("content-disposition"),
-        )
+            content_type = response.headers.get("content-type", "")
+
+            if content_type.startswith("application/json"):
+                info = TypeAdapter(UCLBEResponse).validate_json(response.content)
+
+                raise EgressServiceError(status_code=401, detail=info.message)
+            else:
+                return (
+                    response.content,
+                    content_type or "application/octet-stream",
+                    response.headers.get("content-disposition"),
+                )
     except httpx.HTTPError as e:
         raise EgressConnectionError(
             status_code=502, detail=f"Upstream Egress app unreachable: {e}"
