@@ -71,13 +71,18 @@ def test_read_main():
     assert response.status_code == 200
     assert response.json() == {"Hello": "World"}
 
+    if settings.disable_auth:
+        pass
 
-def test_get_no_token():
+
+def test_get_no_token(monkeypatch):
+    monkeypatch.setattr(settings, "disable_auth", False)
     response = client.get("/egress/1")
     assert response.status_code == 401
 
 
-def test_put_no_token():
+def test_put_no_token(monkeypatch):
+    monkeypatch.setattr(settings, "disable_auth", False)
     response = client.put("/egress/1")
     assert response.status_code == 401
 

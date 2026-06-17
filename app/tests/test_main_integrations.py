@@ -47,5 +47,6 @@ def test_egress_download_live(authed_client):
     response = authed_client.put(f"/egress/{token}", json=body)
     assert response.status_code == 200
 
+    # BE should stop us from downloading this
     response = authed_client.get(f"/egress/{token}/{file_id}")
-    assert response.status_code == 200
+    assert response.status_code == 502
