@@ -1,0 +1,54 @@
+replicaCount: 1
+
+image:
+  repository: hic-egress-backend
+  tag: latest
+  # 'Never' is correct for local images built with `docker build` and never pushed.
+  # Switch to 'IfNotPresent' once you're pulling from a registry.
+  pullPolicy: Never
+
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 8000
+
+# Plain, non-sensitive config -> ConfigMap
+config:
+  egress_app_url: egress.default.svc.cluster.local
+  fe_url: ""
+  egress_username: admin
+  egress_password: admin
+  disable_auth: false
+  keycloak_url: https://keycloak.dev.hic.dundee.ac.uk/
+  keycloak_client_id: fastapi-keycloak
+  keycloak_realm: tristan-test
+  num_approvals: 1
+
+# Sensitive values -> Secret. Leave blank here and pass with --set or -f secrets.yaml
+# (a values file you keep out of git) at install time, e.g.:
+#   helm install egress . -f values.yaml -f secrets.local.yaml
+secrets:
+  secret_key: str
+
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 256Mi
+
+livenessProbe:
+  httpGet:
+    path: /health
+    port: http
+  initialDelaySeconds: 5
+  periodSeconds: 10
+
+readinessProbe:
+  httpGet:
+    path: /health
+    port: http
+  initialDelaySeconds: 5
+  periodSeconds: 5
