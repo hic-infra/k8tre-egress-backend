@@ -57,6 +57,8 @@ async def get_file(token: str, file_id: str):
         return Response(content=content, media_type=content_type, headers=headers)
     except EgressConnectionError as e:
         raise HTTPException(status_code=502, detail=e.detail)
+    except EgressServiceError as e:
+        raise HTTPException(status_code=502, detail=e.detail)
 
 
 @router.put("/egress/{token}")
