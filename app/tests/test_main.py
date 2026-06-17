@@ -71,9 +71,6 @@ def test_read_main():
     assert response.status_code == 200
     assert response.json() == {"Hello": "World"}
 
-    if settings.disable_auth:
-        pass
-
 
 def test_get_no_token(monkeypatch):
     monkeypatch.setattr(settings, "disable_auth", False)
