@@ -42,8 +42,16 @@ def test_egress_download_live(authed_client):
     assert len(res) > 0
     file_id = res[0]["id"]
 
-    # Make sure the file isn't approved
-    body = {"file_id": "reject"}
+    # Approve file
+    body = {file_id: "approve"}
+    response = authed_client.put(f"/egress/{token}", json=body)
+    assert response.status_code == 200
+
+    response = authed_client.get(f"/egress/{token}/{file_id}")
+    assert response.status_code == 200
+
+    # Now reject it
+    body = {file_id: "reject"}
     response = authed_client.put(f"/egress/{token}", json=body)
     assert response.status_code == 200
 
