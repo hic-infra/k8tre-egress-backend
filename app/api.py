@@ -50,8 +50,9 @@ async def download_file(project_id: str, bucket_id: str, file_id: str):
                 auth=(settings.egress_username, settings.egress_password),
                 json={
                     "files_location": f"s3://{bucket_id}",
-                    "max_file_size": 1000,
+                    "max_file_size": 10000000000,
                     "destination": "/",
+                    "num_approvals": settings.num_approvals,
                 },
             )
         return (
@@ -75,7 +76,6 @@ async def approve_file(project_id: str, user_id: str, file_id: str) -> bool:
                 json={"user_id": user_id, "destination": "/"},
             )
 
-        print(response.text)
         if response.status_code == 204:
             return True
         else:

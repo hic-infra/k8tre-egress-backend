@@ -7,6 +7,7 @@ class Settings(BaseSettings):
     secret_key: str
     egress_username: str
     egress_password: str
+    num_approvals: int
     disable_auth: bool
     keycloak_url: str
     keycloak_client_id: str
