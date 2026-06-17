@@ -55,7 +55,7 @@ Key variables:
 | `keycloak_url` | Base URL of the Keycloak server (e.g. `https://auth.example.com`) |
 | `keycloak_realm` | Keycloak realm name |
 | `keycloak_client_id` | Client ID registered in Keycloak for this service |
-| `num_approvals` | Number of approvals required for a file to be downloadable |
+| `required_approvals` | Number of approvals required for a file to be downloadable |
 
 ### 5. Start the development server
 
