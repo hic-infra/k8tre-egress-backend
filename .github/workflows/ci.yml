@@ -35,6 +35,7 @@ jobs:
           echo keycloak_url=${{ vars.KEYCLOAK_URL }} >> .env
           echo keycloak_realm=${{ vars.KEYCLOAK_REALM }} >> .env
           echo keycloak_client_id=${{ vars.KEYCLOAK_CLIENT_ID }} >> .env
+          echo required_approvals=${{ vars.REQUIRED_APPROVALS }} >> .env
 
       - name: Run unit tests
         run: pytest app/tests/ -m "not integration"
