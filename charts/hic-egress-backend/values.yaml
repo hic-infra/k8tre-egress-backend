@@ -10,25 +10,21 @@ image:
 service:
   type: ClusterIP
   port: 80
-  targetPort: 8000
+  targetPort: 80
 
-# Plain, non-sensitive config -> ConfigMap
 config:
   egress_app_url: egress.default.svc.cluster.local
   fe_url: ""
-  egress_username: admin
-  egress_password: admin
   disable_auth: false
-  keycloak_url: https://keycloak.dev.hic.dundee.ac.uk/
-  keycloak_client_id: fastapi-keycloak
-  keycloak_realm: tristan-test
-  num_approvals: 1
+  keycloak_url: ""
+  keycloak_client_id: ""
+  keycloak_realm: ""
+  required_approvals: 1
 
-# Sensitive values -> Secret. Leave blank here and pass with --set or -f secrets.yaml
-# (a values file you keep out of git) at install time, e.g.:
-#   helm install egress . -f values.yaml -f secrets.local.yaml
 secrets:
   secret_key: str
+  egress_username: str
+  egress_password: str
 
 
 resources:

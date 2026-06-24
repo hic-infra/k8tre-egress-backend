@@ -27,7 +27,12 @@ router = APIRouter(dependencies=[Depends(verify_keycloak_token)])
 
 @app.get("/")
 def read_root():
+    print(settings.fe_url)
     return {"Hello": "World"}
+
+@app.get("/health")
+def health():
+    return {"status": "ok"}
 
 
 @router.get("/egress/{token}")
