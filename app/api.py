@@ -102,7 +102,6 @@ async def reject_file(project_id: str, user_id: str, file_id: str) -> bool:
                 auth=(settings.egress_username, settings.egress_password),
                 json={"user_id": user_id, "destination": "/"},
             )
-        print(response.text)
 
         if response.status_code == 204:
             return True
@@ -140,4 +139,4 @@ def decode_token(token: str):
     except ValidationError:
         raise HTTPException(status_code=401, detail="Invalid token claims")
     except jwt.DecodeError as e:
-        raise HTTPException(status_code=401, detail=str(e))
+        raise HTTPException(status_code=404, detail="Egress does not exist")
