@@ -140,4 +140,3 @@ def decode_token(token: str):
         raise HTTPException(status_code=401, detail="Invalid token claims")
     except jwt.DecodeError as e:
         raise HTTPException(status_code=404, detail="Egress does not exist")
-]
