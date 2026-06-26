@@ -1,5 +1,6 @@
 import asyncio
-from fastapi import APIRouter, Depends, FastAPI, HTTPException, Response
+from fastapi import APIRouter, Depends, FastAPI, HTTPException, Request, Response
+from fastapi.responses import JSONResponse
 from app.api import (
     approve_file,
     decode_token,
@@ -23,6 +24,14 @@ app.add_middleware(
 )
 
 router = APIRouter(dependencies=[Depends(verify_keycloak_token)])
+
+
+@app.exception_handler(Exception)
+async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONResponse:
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "Internal server error"},
+    )
 
 
 @app.get("/")
