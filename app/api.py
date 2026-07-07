@@ -36,8 +36,11 @@ async def get_files(project_id: str, bucket_id: str) -> list[FileItem]:
             status_code=502, detail=f"Upstream Egress app unreachable: {e}"
         )
     except ValidationError as e:
+        info = TypeAdapter(UCLBEResponse).validate_json(response.content)
+
         raise EgressServiceError(
-            status_code=502, detail=f"Unexpected response from Egress app: {e}"
+            status_code=502,
+            detail=f"Unexpected response from Egress app: {info.message}",
         )
 
 
