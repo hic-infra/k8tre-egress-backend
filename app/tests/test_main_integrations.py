@@ -36,11 +36,15 @@ def test_egress_approve_live(authed_client):
     """
     Test we can approve a file and see said approvals and comments
     """
+    project_id = "1"
+    dct = {"projectId": project_id, "userId": "user1", "bucketId": "test-bucket"}
+    token = jwt.encode(dct, settings.secret_key)
+    response = authed_client.get(f"/egress/{token}")
+    assert response.status_code == 200
     res = response.json()
     assert len(res) > 0
     file_id = res[0]["id"]
     body = {file_id: {"status": "approve", "comment": "example"}}
-    dct = {"projectId": project_id, "userId": "user1", "bucketId": "test-bucket"}
     token = jwt.encode(dct, settings.secret_key)
     response = authed_client.put(f"/egress/{token}", json=body)
     assert response.status_code == 200
@@ -68,7 +72,7 @@ def test_egress_download_live(authed_client):
     file_id = res[0]["id"]
 
     # Approve file
-    body = {file_id: "approve"}
+    body = {file_id: {"status": "approve", "comment": "example"}}
     response = authed_client.put(f"/egress/{token}", json=body)
     assert response.status_code == 200
 
@@ -76,7 +80,7 @@ def test_egress_download_live(authed_client):
     assert response.status_code == 200
 
     # Now reject it
-    body = {file_id: "reject"}
+    body = {file_id: {"status": "reject", "comment": "example"}}
     response = authed_client.put(f"/egress/{token}", json=body)
     assert response.status_code == 200
 
