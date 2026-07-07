@@ -7,7 +7,7 @@ import jwt
 from keycloak import KeycloakOpenID
 from pydantic import TypeAdapter, ValidationError
 from app.exceptions import EgressConnectionError, EgressServiceError
-from app.schemas import FileAction, FileItem, TokenPayload
+from app.schemas import FileAction, FileItem, TokenPayload, UCLBEResponse
 from app.settings import settings
 
 keycloak_bearer_scheme = HTTPBearer() if not settings.disable_auth else lambda: None
@@ -35,8 +35,11 @@ async def get_files(project_id: str, bucket_id: str) -> list[FileItem]:
             status_code=502, detail=f"Upstream Egress app unreachable: {e}"
         )
     except ValidationError as e:
+        info = TypeAdapter(UCLBEResponse).validate_json(response.content)
+
         raise EgressServiceError(
-            status_code=502, detail=f"Unexpected response from Egress app: {e}"
+            status_code=502,
+            detail=f"Unexpected response from Egress app: {info.message}",
         )
 
 
@@ -49,15 +52,23 @@ async def download_file(project_id: str, bucket_id: str, file_id: str):
                 auth=(settings.egress_username, settings.egress_password),
                 json={
                     "files_location": f"s3://{bucket_id}",
-                    "max_file_size": 1000,
+                    "max_file_size": 10000000000,
                     "destination": "/",
+                    "required_approvals": settings.required_approvals,
                 },
             )
-        return (
-            response.content,
-            response.headers.get("content-type", "application/octet-stream"),
-            response.headers.get("content-disposition"),
-        )
+            content_type = response.headers.get("content-type", "")
+
+            if content_type.startswith("application/json"):
+                info = TypeAdapter(UCLBEResponse).validate_json(response.content)
+
+                raise EgressServiceError(status_code=401, detail=info.message)
+            else:
+                return (
+                    response.content,
+                    content_type or "application/octet-stream",
+                    response.headers.get("content-disposition"),
+                )
     except httpx.HTTPError as e:
         raise EgressConnectionError(
             status_code=502, detail=f"Upstream Egress app unreachable: {e}"
@@ -104,7 +115,6 @@ async def approve_file(
                 json={"user_id": user_id, "destination": "/", "comment": comment},
             )
 
-        print(response.text)
         if response.status_code == 204:
             return True
         else:
@@ -126,7 +136,6 @@ async def reject_file(
                 auth=(settings.egress_username, settings.egress_password),
                 json={"user_id": user_id, "destination": "/", "comment": comment},
             )
-        print(response.text)
 
         if response.status_code == 204:
             return True
@@ -164,4 +173,4 @@ def decode_token(token: str):
     except ValidationError:
         raise HTTPException(status_code=401, detail="Invalid token claims")
     except jwt.DecodeError as e:
-        raise HTTPException(status_code=401, detail=str(e))
+        raise HTTPException(status_code=404, detail="Egress does not exist")

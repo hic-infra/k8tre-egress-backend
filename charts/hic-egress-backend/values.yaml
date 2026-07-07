@@ -1,0 +1,50 @@
+replicaCount: 1
+
+image:
+  repository: hic-egress-backend
+  tag: latest
+  # 'Never' is correct for local images built with `docker build` and never pushed.
+  # Switch to 'IfNotPresent' once you're pulling from a registry.
+  pullPolicy: Never
+
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 80
+
+config:
+  egress_app_url: egress.default.svc.cluster.local
+  fe_url: ""
+  disable_auth: false
+  keycloak_url: ""
+  keycloak_client_id: ""
+  keycloak_realm: ""
+  required_approvals: 1
+
+secrets:
+  secret_key: str
+  egress_username: str
+  egress_password: str
+
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 256Mi
+
+livenessProbe:
+  httpGet:
+    path: /health
+    port: http
+  initialDelaySeconds: 5
+  periodSeconds: 10
+
+readinessProbe:
+  httpGet:
+    path: /health
+    port: http
+  initialDelaySeconds: 5
+  periodSeconds: 5

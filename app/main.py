@@ -1,5 +1,6 @@
 import asyncio
-from fastapi import APIRouter, Depends, FastAPI, HTTPException, Response
+from fastapi import APIRouter, Depends, FastAPI, HTTPException, Request, Response
+from fastapi.responses import JSONResponse
 from app.api import (
     approve_file,
     decode_token,
@@ -26,9 +27,22 @@ app.add_middleware(
 router = APIRouter(dependencies=[Depends(verify_keycloak_token)])
 
 
+@app.exception_handler(Exception)
+async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONResponse:
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "Internal server error"},
+    )
+
+
 @app.get("/")
 def read_root():
     return {"Hello": "World"}
+
+
+@app.get("/health")
+def health():
+    return {"status": "ok"}
 
 
 @router.get("/egress/{token}")
@@ -57,6 +71,8 @@ async def get_file(token: str, file_id: str):
 
         return Response(content=content, media_type=content_type, headers=headers)
     except EgressConnectionError as e:
+        raise HTTPException(status_code=502, detail=e.detail)
+    except EgressServiceError as e:
         raise HTTPException(status_code=502, detail=e.detail)
 
 

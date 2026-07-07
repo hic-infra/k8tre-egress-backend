@@ -16,6 +16,10 @@ class FileItem(BaseModel):
     size: int
 
 
+class UCLBEResponse(BaseModel):
+    message: str
+
+
 class TokenPayload(BaseModel):
     projectId: str
     userId: str

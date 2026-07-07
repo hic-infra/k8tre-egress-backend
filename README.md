@@ -52,10 +52,10 @@ Key variables:
 | `secret_key` | Secret key for signing/encrypting session or internal tokens |
 | `egress_username` | Username credential for authenticating with the upstream egress service |
 | `egress_password` | Password credential for authenticating with the upstream egress service |
-| `KEYCLOAK_SERVER_URL` | Base URL of the Keycloak server (e.g. `https://auth.example.com`) |
-| `KEYCLOAK_REALM` | Keycloak realm name |
-| `KEYCLOAK_CLIENT_ID` | Client ID registered in Keycloak for this service |
-| `KEYCLOAK_CLIENT_SECRET` | Client secret for the Keycloak client |
+| `keycloak_url` | Base URL of the Keycloak server (e.g. `https://auth.example.com`) |
+| `keycloak_realm` | Keycloak realm name |
+| `keycloak_client_id` | Client ID registered in Keycloak for this service |
+| `required_approvals` | Number of approvals required for a file to be downloadable |
 
 ### 5. Start the development server
 

@@ -1,0 +1,6 @@
+apiVersion: v2
+name: hic-egress-backend
+description: HIC Egress Backend - FastAPI service for secure file egress from the TRE
+type: application
+version: 0.1.0
+appVersion: "0.1.0"

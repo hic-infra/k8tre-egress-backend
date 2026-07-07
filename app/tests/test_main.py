@@ -75,12 +75,14 @@ def test_read_main():
     assert response.json() == {"Hello": "World"}
 
 
-def test_get_no_token():
+def test_get_no_token(monkeypatch):
+    monkeypatch.setattr(settings, "disable_auth", False)
     response = client.get("/egress/1")
     assert response.status_code == 401
 
 
-def test_put_no_token():
+def test_put_no_token(monkeypatch):
+    monkeypatch.setattr(settings, "disable_auth", False)
     response = client.put("/egress/1")
     assert response.status_code == 401
 
@@ -96,7 +98,7 @@ def test_egress_get_with_invalid_jwt(authed_client):
     key = secrets.token_hex(32)
     token = jwt.encode(dct, key)
     response = authed_client.get(f"/egress/{token}")
-    assert response.status_code == 401
+    assert response.status_code == 404
 
 
 def test_egress_get_with_valid_jwt(authed_client):

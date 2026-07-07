@@ -1,0 +1,5 @@
+.env
+*.DS_Store
+
+charts/hic-egress-backend/values.local.yaml
+charts/hic-egress-backend/secrets.local.yaml
