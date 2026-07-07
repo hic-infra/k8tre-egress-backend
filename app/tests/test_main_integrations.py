@@ -60,6 +60,8 @@ def test_egress_approve_live(authed_client):
     response = authed_client.put(f"/egress/{token}", json=body)
     assert response.status_code == 200
 
+
+@pytest.mark.integration
 def test_egress_download_live(authed_client):
     project_id = "1"
     dct = {"projectId": project_id, "userId": "user1", "bucketId": "test-bucket"}
