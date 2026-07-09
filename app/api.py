@@ -19,132 +19,105 @@ keycloak_openid = KeycloakOpenID(
 )
 
 
-async def get_files(project_id: str, bucket_id: str) -> list[FileItem]:
-    try:
-        async with httpx.AsyncClient() as client:
-            response = await client.request(
-                "GET",
-                f"{settings.egress_app_url}{project_id}/files",
-                auth=(settings.egress_username, settings.egress_password),
-                json={"files_location": f"s3://{bucket_id}"},
-            )
-            return TypeAdapter(list[FileItem]).validate_json(response.content)
+def _egress_url(project_id: str, suffix: str = "") -> str:
+    return f"{settings.egress_app_url}{project_id}{suffix}"
 
+
+async def _egress_request(method: str, url: str, **kwargs) -> httpx.Response:
+    """Shared entrypoint for all upstream Egress app calls.
+
+    Handles client creation, auth, and connection-level error wrapping so
+    individual endpoint functions only need to deal with response parsing.
+    """
+    try:
+        async with httpx.AsyncClient(
+            auth=(settings.egress_username, settings.egress_password)
+        ) as client:
+            return await client.request(method, url, **kwargs)
     except httpx.HTTPError as e:
         raise EgressConnectionError(
             status_code=502, detail=f"Upstream Egress app unreachable: {e}"
         )
-    except ValidationError as e:
-        info = TypeAdapter(UCLBEResponse).validate_json(response.content)
 
-        raise EgressServiceError(
-            status_code=502,
-            detail=f"Unexpected response from Egress app: {info.message}",
-        )
+
+def _raise_service_error(response: httpx.Response) -> EgressServiceError:
+    """Parse an unexpected/error response body from the Egress app."""
+    try:
+        info = TypeAdapter(UCLBEResponse).validate_json(response.content)
+        detail = info.message
+    except ValidationError:
+        detail = response.text
+    return EgressServiceError(status_code=502, detail=detail)
+
+
+async def get_files(project_id: str, bucket_id: str) -> list[FileItem]:
+    response = await _egress_request(
+        "GET",
+        _egress_url(project_id, "/files"),
+        json={"files_location": f"s3://{bucket_id}"},
+    )
+    try:
+        return TypeAdapter(list[FileItem]).validate_json(response.content)
+    except ValidationError:
+        raise _raise_service_error(response)
 
 
 async def download_file(project_id: str, bucket_id: str, file_id: str):
-    try:
-        async with httpx.AsyncClient() as client:
-            response = await client.request(
-                "GET",
-                f"{settings.egress_app_url}{project_id}/files/{file_id}",
-                auth=(settings.egress_username, settings.egress_password),
-                json={
-                    "files_location": f"s3://{bucket_id}",
-                    "max_file_size": 10000000000,
-                    "destination": "/",
-                    "required_approvals": settings.required_approvals,
-                },
-            )
-            content_type = response.headers.get("content-type", "")
+    response = await _egress_request(
+        "GET",
+        _egress_url(project_id, f"/files/{file_id}"),
+        json={
+            "files_location": f"s3://{bucket_id}",
+            "max_file_size": 10000000000,
+            "destination": "/",
+            "required_approvals": settings.required_approvals,
+        },
+    )
+    content_type = response.headers.get("content-type", "")
 
-            if content_type.startswith("application/json"):
-                info = TypeAdapter(UCLBEResponse).validate_json(response.content)
+    if content_type.startswith("application/json"):
+        info = TypeAdapter(UCLBEResponse).validate_json(response.content)
+        raise EgressServiceError(status_code=401, detail=info.message)
 
-                raise EgressServiceError(status_code=401, detail=info.message)
-            else:
-                return (
-                    response.content,
-                    content_type or "application/octet-stream",
-                    response.headers.get("content-disposition"),
-                )
-    except httpx.HTTPError as e:
-        raise EgressConnectionError(
-            status_code=502, detail=f"Upstream Egress app unreachable: {e}"
-        )
+    return (
+        response.content,
+        content_type or "application/octet-stream",
+        response.headers.get("content-disposition"),
+    )
 
 
 async def set_file_status(
     project_id: str, user_id: str, file_id: str, action: FileAction, comment: str = ""
 ) -> bool:
-    url = ""
-    if action == FileAction.approve:
-        url = f"{settings.egress_app_url}{project_id}/files/{file_id}/approve"
-    elif action == FileAction.reject:
-        url = f"{settings.egress_app_url}{project_id}/files/{file_id}/reject"
+    if action not in (FileAction.approve, FileAction.reject):
+        raise ValueError(f"Unsupported file action: {action}")
 
-    try:
-        async with httpx.AsyncClient() as client:
-            response = await client.request(
-                "PUT",
-                url,
-                auth=(settings.egress_username, settings.egress_password),
-                json={"user_id": user_id, "destination": "/", "comment": comment},
-            )
+    endpoint = "approve" if action == FileAction.approve else "reject"
+    response = await _egress_request(
+        "PUT",
+        _egress_url(project_id, f"/files/{file_id}/{endpoint}"),
+        json={"user_id": user_id, "destination": "/", "comment": comment},
+    )
 
-        if response.status_code == 204:
-            return True
-        else:
-            raise EgressServiceError(status_code=502, detail=response.json())
-    except httpx.HTTPError as e:
-        raise EgressConnectionError(
-            status_code=502, detail=f"Upstream Egress app unreachable: {e}"
-        )
+    if response.status_code == 204:
+        return True
+    raise EgressServiceError(status_code=502, detail=response.json())
 
 
 async def approve_file(
     project_id: str, user_id: str, file_id: str, comment: str = ""
 ) -> bool:
-    try:
-        async with httpx.AsyncClient() as client:
-            response = await client.request(
-                "PUT",
-                f"{settings.egress_app_url}{project_id}/files/{file_id}/approve",
-                auth=(settings.egress_username, settings.egress_password),
-                json={"user_id": user_id, "destination": "/", "comment": comment},
-            )
-
-        if response.status_code == 204:
-            return True
-        else:
-            raise EgressServiceError(status_code=502, detail=response.json())
-    except httpx.HTTPError as e:
-        raise EgressConnectionError(
-            status_code=502, detail=f"Upstream Egress app unreachable: {e}"
-        )
+    return await set_file_status(
+        project_id, user_id, file_id, FileAction.approve, comment
+    )
 
 
 async def reject_file(
     project_id: str, user_id: str, file_id: str, comment: str = ""
 ) -> bool:
-    try:
-        async with httpx.AsyncClient() as client:
-            response = await client.request(
-                "PUT",
-                f"{settings.egress_app_url}{project_id}/files/{file_id}/reject",
-                auth=(settings.egress_username, settings.egress_password),
-                json={"user_id": user_id, "destination": "/", "comment": comment},
-            )
-
-        if response.status_code == 204:
-            return True
-        else:
-            raise EgressServiceError(status_code=502, detail=response.json())
-    except httpx.HTTPError as e:
-        raise EgressConnectionError(
-            status_code=502, detail=f"Upstream Egress app unreachable: {e}"
-        )
+    return await set_file_status(
+        project_id, user_id, file_id, FileAction.reject, comment
+    )
 
 
 async def verify_keycloak_token(
@@ -172,5 +145,5 @@ def decode_token(token: str):
         return payload
     except ValidationError:
         raise HTTPException(status_code=401, detail="Invalid token claims")
-    except jwt.DecodeError as e:
+    except jwt.DecodeError:
         raise HTTPException(status_code=404, detail="Egress does not exist")
