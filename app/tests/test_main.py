@@ -60,6 +60,40 @@ def mock_ucl_egress_put(project_id, file_id):
         yield router
 
 
+def mock_ucl_egress_audit_trail_get(project_id):
+    body = [
+        {
+            "action": "Approval",
+            "comment": "",
+            "datetime": "2026-07-07T12:51:10.252099843Z",
+            "destination": "/",
+            "file_id": "9f73a22f56b8d659393b7b00f42d7386",
+            "user_id": "user1"
+        },
+        {
+            "action": "Download",
+            "comment": "",
+            "datetime": "2026-07-09T09:37:27.805943177Z",
+            "destination": "/",
+            "file_id": "9f73a22f56b8d659393b7b00f42d7386",
+            "user_id": ""
+        },
+        {
+            "action": "Rejection",
+            "comment": "Example",
+            "datetime": "2026-07-09T09:37:43.442483337Z",
+            "destination": "/",
+            "file_id": "9f73a22f56b8d659393b7b00f42d7386",
+            "user_id": "user1"
+        }
+    ]
+    with respx.mock(
+        base_url=settings.egress_app_url, assert_all_called=False
+    ) as router:
+        router.get(f"/{project_id}/events").mock(
+            return_value=body
+        )
+        yield router
 @contextmanager
 def mock_ucl_egress_fail():
     with respx.mock(
@@ -108,6 +142,11 @@ def test_egress_get_with_valid_jwt(authed_client):
     with mock_ucl_egress_get(project_id) as router:
         response = authed_client.get(f"/egress/{token}")
         assert response.status_code == 200
+
+
+def test_egress_get_audit_trail(authed_client):
+    project_id = "1"
+    # TODO: Fill this in
 
 
 def test_egress_approve_put_with_valid_jwt(authed_client):

@@ -7,7 +7,7 @@ import jwt
 from keycloak import KeycloakOpenID
 from pydantic import TypeAdapter, ValidationError
 from app.exceptions import EgressConnectionError, EgressServiceError
-from app.schemas import FileAction, FileItem, TokenPayload, UCLBEResponse
+from app.schemas import AuditLog, FileAction, FileItem, TokenPayload, UCLBEResponse
 from app.settings import settings
 
 keycloak_bearer_scheme = HTTPBearer() if not settings.disable_auth else lambda: None
@@ -118,6 +118,16 @@ async def reject_file(
     return await set_file_status(
         project_id, user_id, file_id, FileAction.reject, comment
     )
+
+async def get_audit_trail(project_id: str):
+    response = await _egress_request(
+        "GET",
+        _egress_url(project_id, f"/events"))
+    
+    try:
+        return TypeAdapter(list[AuditLog]).validate_json(response.content)
+    except ValidationError:
+        raise _raise_service_error(response)
 
 
 async def verify_keycloak_token(
