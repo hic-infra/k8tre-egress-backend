@@ -2,17 +2,15 @@ import asyncio
 from fastapi import APIRouter, Depends, FastAPI, HTTPException, Request, Response
 from fastapi.responses import JSONResponse
 from app.api import (
-    approve_file,
     decode_token,
     download_file,
     get_audit_trail,
     get_files,
-    reject_file,
     set_file_status,
     verify_keycloak_token,
 )
 from app.exceptions import EgressConnectionError, EgressServiceError
-from app.schemas import AuditAction, AuditLog, FileAction, FileApproval
+from app.schemas import AuditAction, AuditLog, FileApproval, FileItemWithAudit
 from app.settings import settings
 from fastapi.middleware.cors import CORSMiddleware
 import logging
@@ -52,13 +50,19 @@ def health():
     return {"status": "ok"}
 
 
-@router.get("/egress/{token}")
+@router.get("/egress/{token}", response_model=list[FileItemWithAudit])
 async def get_egress(token: str):
     try:
         payload = decode_token(token)
         files = await get_files(payload.projectId, payload.bucketId)
         audit = await get_audit_trail(payload.projectId)
+        
+        # We need to add in "approve" to any files in the approvals field
+        for f in files:
+            for app in f.approvals:
+                pass
 
+        # Now we handle any rejections
         # Match the files to the audit logs
         audit_by_file_id: dict[str, list[AuditLog]] = collections.defaultdict(list)
         for entry in audit:
@@ -66,7 +70,6 @@ async def get_egress(token: str):
 
         lst = []
         for file in files:
-            x = dict(file)
             entries = audit_by_file_id.get(file.id, [])
             # We're only interested in approvals or rejections to figure out the current state
             entries = list(filter(
@@ -74,30 +77,30 @@ async def get_egress(token: str):
                 entries,
             ))            
             user_ids = set([x.user_id for x in entries])
-            latest_audit_entry = dict()
-            # We want the latest one associated with each user_id
-            for u in user_ids:
-                latest_audit_entry[u] = max(
-                    filter(lambda x: x.user_id == u, entries), key=lambda e: e.datetime, default=None
+
+            # We want the latest entry associated with each user_id
+            latest_audit_entry = {
+                u: max(
+                    filter(lambda e: e.user_id == u, entries),
+                    key=lambda e: e.datetime,
+                    default=None,
                 )
-            logger.info(latest_audit_entry)
+                for u in user_ids
+            }
 
-            # We need to put rejects into the approvals array with the comment
-            for k,v in latest_audit_entry.items():
-                if v.action == AuditAction.reject:
-                    x["approvals"].append(
-                        {
-                            "comment": v.comment,
-                            "action": "reject",
-                            "user_id": v.user_id
-                        }
-                    )
+            approvals = [
+                {
+                    "comment": v.comment,
+                    "action": "approve" if v.action == AuditAction.approve else "reject",
+                    "user_id": v.user_id,
+                }
+                for v in latest_audit_entry.values()
+                if v is not None
+            ]
 
-            lst.append(x)
+            lst.append(file.model_copy(update={"approvals": approvals}))
 
-
-        logger.info(x)
-        return files
+        return lst
     except EgressServiceError as e:
         raise HTTPException(status_code=e.status_code, detail=e.detail)
 

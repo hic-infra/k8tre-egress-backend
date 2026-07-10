@@ -59,7 +59,7 @@ def mock_ucl_egress_put(project_id, file_id):
         )
         yield router
 
-
+@contextmanager
 def mock_ucl_egress_audit_trail_get(project_id):
     body = [
         {
@@ -91,9 +91,13 @@ def mock_ucl_egress_audit_trail_get(project_id):
         base_url=settings.egress_app_url, assert_all_called=False
     ) as router:
         router.get(f"/{project_id}/events").mock(
-            return_value=body
-        )
+            return_value=Response(
+                status_code=200,
+                content=json.dumps(body),
+                headers={"content-type": "application/json"},
+            )        )
         yield router
+
 @contextmanager
 def mock_ucl_egress_fail():
     with respx.mock(
@@ -139,7 +143,8 @@ def test_egress_get_with_valid_jwt(authed_client):
     project_id = "1"
     dct = {"projectId": project_id, "userId": "user1", "bucketId": "test-bucket"}
     token = jwt.encode(dct, settings.secret_key)
-    with mock_ucl_egress_get(project_id) as router:
+    with mock_ucl_egress_get(project_id) as router, \
+         mock_ucl_egress_audit_trail_get(project_id) as audit_router:
         response = authed_client.get(f"/egress/{token}")
         assert response.status_code == 200
 

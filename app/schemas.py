@@ -1,16 +1,16 @@
 from enum import Enum
-from typing import Optional
+from typing import Literal, Optional
 from pydantic import BaseModel
 from datetime import datetime
 
-class ApprovalStructure(BaseModel):
+class UCLBEApprovalStructure(BaseModel):
     comment: str
     destination: str
     user_id: str
 
 
-class FileItem(BaseModel):
-    approvals: Optional[list[ApprovalStructure]]
+class UCLBEFileItem(BaseModel):
+    approvals: Optional[list[UCLBEApprovalStructure]]
     file_name: str
     id: str
     size: int
@@ -34,6 +34,16 @@ class AuditAction(str, Enum):
     approve = "Approval"
     reject = "Rejection"
     download = "Download"
+
+
+class ApprovalEntry(BaseModel):
+    comment: str
+    action: FileAction
+    user_id: str
+
+
+class FileItemWithAudit(UCLBEFileItem):
+    approvals: list[ApprovalEntry] = []
 
 
 class FileApproval(BaseModel):
