@@ -68,7 +68,7 @@ def mock_ucl_egress_audit_trail_get(project_id):
             "comment": "",
             "datetime": "2026-07-07T12:51:10.252099843Z",
             "destination": "/",
-            "file_id": "9f73a22f56b8d659393b7b00f42d7386",
+            "file_id": "9f73a22f",
             "user_id": "user1",
         },
         {
@@ -76,7 +76,7 @@ def mock_ucl_egress_audit_trail_get(project_id):
             "comment": "",
             "datetime": "2026-07-09T09:37:27.805943177Z",
             "destination": "/",
-            "file_id": "9f73a22f56b8d659393b7b00f42d7386",
+            "file_id": "9f73a22f",
             "user_id": "",
         },
         {
@@ -84,7 +84,7 @@ def mock_ucl_egress_audit_trail_get(project_id):
             "comment": "Example",
             "datetime": "2026-07-09T09:37:43.442483337Z",
             "destination": "/",
-            "file_id": "9f73a22f56b8d659393b7b00f42d7386",
+            "file_id": "9f73a22f",
             "user_id": "user1",
         },
     ]
@@ -151,6 +151,10 @@ def test_egress_get_with_valid_jwt(authed_client):
     ) as audit_router:
         response = authed_client.get(f"/egress/{token}")
         assert response.status_code == 200
+        res = response.json()[0]
+        assert res['id'] == "9f73a22f"
+        assert len(res['approvals']) > 0
+        assert res['approvals'][0]['action'] == "reject"
 
 
 def test_egress_get_audit_trail(authed_client):

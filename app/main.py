@@ -58,13 +58,8 @@ async def get_egress(token: str):
         files = await get_files(payload.projectId, payload.bucketId)
         audit = await get_audit_trail(payload.projectId)
 
-        # We need to add in "approve" to any files in the approvals field
-        for f in files:
-            for app in f.approvals:
-                pass
-
-        # Now we handle any rejections
-        # Match the files to the audit logs
+        # To get rejection comments correctly we must get the audit log
+        # and match it to the files involved
         audit_by_file_id: dict[str, list[AuditLog]] = collections.defaultdict(list)
         for entry in audit:
             audit_by_file_id[entry.file_id].append(entry)
@@ -132,7 +127,6 @@ async def get_file(token: str, file_id: str):
 @router.put("/egress/{token}")
 async def approve_reject_files(token: str, body: dict[str, FileApproval]):
     payload = decode_token(token)
-    print(body.items())
     try:
         await asyncio.gather(
             *[
