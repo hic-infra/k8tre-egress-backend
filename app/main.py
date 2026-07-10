@@ -32,6 +32,7 @@ logging.basicConfig(
     format="%(asctime)s [%(name)s] %(levelname)s: %(message)s",
 )
 
+
 @app.exception_handler(Exception)
 async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONResponse:
     return JSONResponse(
@@ -56,7 +57,7 @@ async def get_egress(token: str):
         payload = decode_token(token)
         files = await get_files(payload.projectId, payload.bucketId)
         audit = await get_audit_trail(payload.projectId)
-        
+
         # We need to add in "approve" to any files in the approvals field
         for f in files:
             for app in f.approvals:
@@ -72,10 +73,13 @@ async def get_egress(token: str):
         for file in files:
             entries = audit_by_file_id.get(file.id, [])
             # We're only interested in approvals or rejections to figure out the current state
-            entries = list(filter(
-                lambda x: x.action == AuditAction.approve or x.action == AuditAction.reject,
-                entries,
-            ))            
+            entries = list(
+                filter(
+                    lambda x: x.action == AuditAction.approve
+                    or x.action == AuditAction.reject,
+                    entries,
+                )
+            )
             user_ids = set([x.user_id for x in entries])
 
             # We want the latest entry associated with each user_id
@@ -91,7 +95,9 @@ async def get_egress(token: str):
             approvals = [
                 {
                     "comment": v.comment,
-                    "action": "approve" if v.action == AuditAction.approve else "reject",
+                    "action": (
+                        "approve" if v.action == AuditAction.approve else "reject"
+                    ),
                     "user_id": v.user_id,
                 }
                 for v in latest_audit_entry.values()

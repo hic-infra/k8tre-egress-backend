@@ -59,6 +59,7 @@ def mock_ucl_egress_put(project_id, file_id):
         )
         yield router
 
+
 @contextmanager
 def mock_ucl_egress_audit_trail_get(project_id):
     body = [
@@ -68,7 +69,7 @@ def mock_ucl_egress_audit_trail_get(project_id):
             "datetime": "2026-07-07T12:51:10.252099843Z",
             "destination": "/",
             "file_id": "9f73a22f56b8d659393b7b00f42d7386",
-            "user_id": "user1"
+            "user_id": "user1",
         },
         {
             "action": "Download",
@@ -76,7 +77,7 @@ def mock_ucl_egress_audit_trail_get(project_id):
             "datetime": "2026-07-09T09:37:27.805943177Z",
             "destination": "/",
             "file_id": "9f73a22f56b8d659393b7b00f42d7386",
-            "user_id": ""
+            "user_id": "",
         },
         {
             "action": "Rejection",
@@ -84,8 +85,8 @@ def mock_ucl_egress_audit_trail_get(project_id):
             "datetime": "2026-07-09T09:37:43.442483337Z",
             "destination": "/",
             "file_id": "9f73a22f56b8d659393b7b00f42d7386",
-            "user_id": "user1"
-        }
+            "user_id": "user1",
+        },
     ]
     with respx.mock(
         base_url=settings.egress_app_url, assert_all_called=False
@@ -95,8 +96,10 @@ def mock_ucl_egress_audit_trail_get(project_id):
                 status_code=200,
                 content=json.dumps(body),
                 headers={"content-type": "application/json"},
-            )        )
+            )
+        )
         yield router
+
 
 @contextmanager
 def mock_ucl_egress_fail():
@@ -143,8 +146,9 @@ def test_egress_get_with_valid_jwt(authed_client):
     project_id = "1"
     dct = {"projectId": project_id, "userId": "user1", "bucketId": "test-bucket"}
     token = jwt.encode(dct, settings.secret_key)
-    with mock_ucl_egress_get(project_id) as router, \
-         mock_ucl_egress_audit_trail_get(project_id) as audit_router:
+    with mock_ucl_egress_get(project_id) as router, mock_ucl_egress_audit_trail_get(
+        project_id
+    ) as audit_router:
         response = authed_client.get(f"/egress/{token}")
         assert response.status_code == 200
 

@@ -3,6 +3,7 @@ from typing import Literal, Optional
 from pydantic import BaseModel
 from datetime import datetime
 
+
 class UCLBEApprovalStructure(BaseModel):
     comment: str
     destination: str
@@ -29,6 +30,7 @@ class TokenPayload(BaseModel):
 class FileAction(str, Enum):
     approve = "approve"
     reject = "reject"
+
 
 class AuditAction(str, Enum):
     approve = "Approval"

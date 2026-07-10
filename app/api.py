@@ -119,11 +119,10 @@ async def reject_file(
         project_id, user_id, file_id, FileAction.reject, comment
     )
 
+
 async def get_audit_trail(project_id: str):
-    response = await _egress_request(
-        "GET",
-        _egress_url(project_id, f"/events"))
-    
+    response = await _egress_request("GET", _egress_url(project_id, f"/events"))
+
     try:
         return TypeAdapter(list[AuditLog]).validate_json(response.content)
     except ValidationError:
