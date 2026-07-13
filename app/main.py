@@ -50,6 +50,14 @@ def read_root():
 def health():
     return {"status": "ok"}
 
+@router.get("/egress/audit/{token}")
+async def get_audit_log(token: str):
+    try:
+        payload = decode_token(token)
+        audit = await get_audit_trail(payload.projectId)
+        return audit
+    except EgressConnectionError as e:
+        raise HTTPException(status_code=e.status_code, detail=e.detail)
 
 @router.get("/egress/{token}", response_model=list[FileItemWithAudit])
 async def get_egress(token: str):
@@ -64,7 +72,7 @@ async def get_egress(token: str):
         for entry in audit:
             audit_by_file_id[entry.file_id].append(entry)
 
-        lst = []
+        new_file_lst = []
         for file in files:
             entries = audit_by_file_id.get(file.id, [])
             # We're only interested in approvals or rejections to figure out the current state
@@ -99,9 +107,9 @@ async def get_egress(token: str):
                 if v is not None
             ]
 
-            lst.append(file.model_copy(update={"approvals": approvals}))
+            new_file_lst.append(file.model_copy(update={"approvals": approvals}))
 
-        return lst
+        return new_file_lst
     except EgressServiceError as e:
         raise HTTPException(status_code=e.status_code, detail=e.detail)
 
@@ -144,6 +152,5 @@ async def approve_reject_files(token: str, body: dict[str, FileApproval]):
         return {"message": "success"}
     except EgressConnectionError as e:
         raise HTTPException(status_code=e.status_code, detail=e.detail)
-
 
 app.include_router(router)
