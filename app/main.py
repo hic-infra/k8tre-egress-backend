@@ -50,6 +50,7 @@ def read_root():
 def health():
     return {"status": "ok"}
 
+
 @router.get("/egress/audit/{token}")
 async def get_audit_log(token: str):
     try:
@@ -58,6 +59,7 @@ async def get_audit_log(token: str):
         return audit
     except EgressConnectionError as e:
         raise HTTPException(status_code=e.status_code, detail=e.detail)
+
 
 @router.get("/egress/{token}", response_model=list[FileItemWithAudit])
 async def get_egress(token: str):
@@ -152,5 +154,6 @@ async def approve_reject_files(token: str, body: dict[str, FileApproval]):
         return {"message": "success"}
     except EgressConnectionError as e:
         raise HTTPException(status_code=e.status_code, detail=e.detail)
+
 
 app.include_router(router)

@@ -152,9 +152,9 @@ def test_egress_get_with_valid_jwt(authed_client):
         response = authed_client.get(f"/egress/{token}")
         assert response.status_code == 200
         res = response.json()[0]
-        assert res['id'] == "9f73a22f"
-        assert len(res['approvals']) > 0
-        assert res['approvals'][0]['action'] == "reject"
+        assert res["id"] == "9f73a22f"
+        assert len(res["approvals"]) > 0
+        assert res["approvals"][0]["action"] == "reject"
 
 
 def test_egress_get_audit_trail(authed_client):
