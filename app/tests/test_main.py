@@ -61,6 +61,47 @@ def mock_ucl_egress_put(project_id, file_id):
 
 
 @contextmanager
+def mock_ucl_egress_audit_trail_get(project_id):
+    body = [
+        {
+            "action": "Approval",
+            "comment": "",
+            "datetime": "2026-07-07T12:51:10.252099843Z",
+            "destination": "/",
+            "file_id": "9f73a22f",
+            "user_id": "user1",
+        },
+        {
+            "action": "Download",
+            "comment": "",
+            "datetime": "2026-07-09T09:37:27.805943177Z",
+            "destination": "/",
+            "file_id": "9f73a22f",
+            "user_id": "",
+        },
+        {
+            "action": "Rejection",
+            "comment": "Example",
+            "datetime": "2026-07-09T09:37:43.442483337Z",
+            "destination": "/",
+            "file_id": "9f73a22f",
+            "user_id": "user1",
+        },
+    ]
+    with respx.mock(
+        base_url=settings.egress_app_url, assert_all_called=False
+    ) as router:
+        router.get(f"/{project_id}/events").mock(
+            return_value=Response(
+                status_code=200,
+                content=json.dumps(body),
+                headers={"content-type": "application/json"},
+            )
+        )
+        yield router
+
+
+@contextmanager
 def mock_ucl_egress_fail():
     with respx.mock(
         base_url=settings.egress_app_url, assert_all_called=False
@@ -105,9 +146,20 @@ def test_egress_get_with_valid_jwt(authed_client):
     project_id = "1"
     dct = {"projectId": project_id, "userId": "user1", "bucketId": "test-bucket"}
     token = jwt.encode(dct, settings.secret_key)
-    with mock_ucl_egress_get(project_id) as router:
+    with mock_ucl_egress_get(project_id) as router, mock_ucl_egress_audit_trail_get(
+        project_id
+    ) as audit_router:
         response = authed_client.get(f"/egress/{token}")
         assert response.status_code == 200
+        res = response.json()[0]
+        assert res["id"] == "9f73a22f"
+        assert len(res["approvals"]) > 0
+        assert res["approvals"][0]["action"] == "reject"
+
+
+def test_egress_get_audit_trail(authed_client):
+    project_id = "1"
+    # TODO: Fill this in
 
 
 def test_egress_approve_put_with_valid_jwt(authed_client):
