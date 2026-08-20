@@ -25,7 +25,7 @@ def authed_client():
 @pytest.mark.integration
 def test_egress_get_live(authed_client):
     project_id = "1"
-    dct = {"projectId": project_id, "userId": "user1", "bucketId": "test-bucket"}
+    dct = {"projectId": project_id, "userId": "user1", "bucketId": "test-bucket", "version": "260819-134427"}
     token = jwt.encode(dct, settings.secret_key)
     response = authed_client.get(f"/egress/{token}")
     assert response.status_code == 200
@@ -37,7 +37,7 @@ def test_egress_approve_live(authed_client):
     Test we can approve a file and see said approvals and comments
     """
     project_id = "1"
-    dct = {"projectId": project_id, "userId": "user1", "bucketId": "test-bucket"}
+    dct = {"projectId": project_id, "userId": "user1", "bucketId": "test-bucket", "version": "260819-134427"}
     token = jwt.encode(dct, settings.secret_key)
     response = authed_client.get(f"/egress/{token}")
     assert response.status_code == 200
@@ -64,7 +64,7 @@ def test_egress_approve_live(authed_client):
 @pytest.mark.integration
 def test_egress_download_live(authed_client):
     project_id = "1"
-    dct = {"projectId": project_id, "userId": "user1", "bucketId": "test-bucket"}
+    dct = {"projectId": project_id, "userId": "user1", "bucketId": "test-bucket", "version": "260819-134427"}
     token = jwt.encode(dct, settings.secret_key)
     response = authed_client.get(f"/egress/{token}")
     assert response.status_code == 200

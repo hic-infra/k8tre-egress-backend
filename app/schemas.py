@@ -25,6 +25,7 @@ class TokenPayload(BaseModel):
     projectId: str
     userId: str
     bucketId: str
+    version: str
 
 
 class FileAction(str, Enum):
