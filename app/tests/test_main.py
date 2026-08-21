@@ -214,7 +214,7 @@ def test_egress_get_audit_trail(authed_client):
     # TODO: Fill this in
 
 
-def test_egress_approve_put_with_valid_jwt(authed_client):
+def test_egress_approve_put_without_comment(authed_client):
     project_id = "1"
     file_id = "9f73a22f"
     dct = {
@@ -225,6 +225,22 @@ def test_egress_approve_put_with_valid_jwt(authed_client):
     }
     token = jwt.encode(dct, settings.secret_key)
     body = {file_id: {"status": "approve", "comment": ""}}
+    with mock_ucl_egress_put(project_id, file_id) as router:
+        response = authed_client.put(f"/egress/{token}", json=body)
+        assert response.status_code == 422
+
+
+def test_egress_approve_put_with_valid_jwt(authed_client):
+    project_id = "1"
+    file_id = "9f73a22f"
+    dct = {
+        "projectId": project_id,
+        "userId": "user1",
+        "bucketId": "test-bucket",
+        "version": "260819-134427",
+    }
+    token = jwt.encode(dct, settings.secret_key)
+    body = {file_id: {"status": "approve", "comment": "example"}}
     with mock_ucl_egress_put(project_id, file_id) as router:
         response = authed_client.put(f"/egress/{token}", json=body)
         assert response.status_code == 200
@@ -240,7 +256,7 @@ def test_egress_reject_put_with_valid_jwt(authed_client):
         "version": "260819-134427",
     }
     token = jwt.encode(dct, settings.secret_key)
-    body = {file_id: {"status": "reject", "comment": ""}}
+    body = {file_id: {"status": "reject", "comment": "example"}}
     with mock_ucl_egress_put(project_id, file_id) as router:
         response = authed_client.put(f"/egress/{token}", json=body)
         assert response.status_code == 200
@@ -256,7 +272,7 @@ def test_egress_put_fail(authed_client):
         "version": "260819-134427",
     }
     token = jwt.encode(dct, settings.secret_key)
-    body = {file_id: {"status": "approve", "comment": ""}}
+    body = {file_id: {"status": "approve", "comment": "example"}}
     with mock_ucl_egress_fail() as router:
         response = authed_client.put(f"/egress/{token}", json=body)
         assert response.status_code == 502

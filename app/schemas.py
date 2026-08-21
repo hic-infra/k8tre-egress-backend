@@ -1,6 +1,6 @@
 from enum import Enum
 from typing import Optional
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from datetime import datetime
 
 
@@ -50,7 +50,7 @@ class FileItemWithAudit(UCLBEFileItem):
 
 
 class FileApproval(BaseModel):
-    comment: str
+    comment: str = Field(min_length=1)
     status: FileAction
 
 
