@@ -15,6 +15,7 @@ from app.settings import settings
 from fastapi.middleware.cors import CORSMiddleware
 import logging
 import collections
+from pathlib import Path
 
 app = FastAPI()
 
@@ -66,6 +67,24 @@ async def get_egress(token: str):
     try:
         payload = decode_token(token)
         files = await get_files(payload.projectId, payload.bucketId)
+        # .done is a marker for the egress being requested, so we remove it
+        files = list(filter(lambda x: Path(x.file_name).name != ".done", files))
+
+        # Remove any files that don't fit into the structure of project_id/version/file
+        files = list(filter(lambda x: len(Path(x.file_name).parts) == 3, files))
+        # We now want to remove files that are not associated with this version of the egress
+        # the file structure is project_id/version/file so let's extract the file ids associated
+        # with that version
+        file_parts_with_id = [
+            (i, Path(x.file_name).parts[1]) for i, x in enumerate(files)
+        ]
+        file_ids_to_keep = set(
+            [
+                x[0]
+                for x in filter(lambda x: x[1] == payload.version, file_parts_with_id)
+            ]
+        )
+        files = [x for i, x in enumerate(files) if i in file_ids_to_keep]
         audit = await get_audit_trail(payload.projectId)
 
         # To get rejection comments correctly we must get the audit log
