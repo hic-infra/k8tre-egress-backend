@@ -66,7 +66,7 @@ def test_egress_approve_live(authed_client):
     # assert res["approvals"][0]["comment"] == "example"
 
     # Delete the approval
-    body = {file_id: {"status": "reject", "comment": ""}}
+    body = {file_id: {"status": "reject", "comment": "example"}}
     response = authed_client.put(f"/egress/{token}", json=body)
     assert response.status_code == 200
 
