@@ -73,8 +73,15 @@ async def get_egress(token: str):
         # We now want to remove files that are not associated with this version of the egress
         # the file structure is project_id/version/file so let's extract the file ids associated
         # with that version
-        file_parts_with_id = [(i, Path(x.file_name).parts[1]) for i, x in enumerate(files)]
-        file_ids_to_keep = set([x[0] for x in filter(lambda x: x[1] == payload.version, file_parts_with_id)])
+        file_parts_with_id = [
+            (i, Path(x.file_name).parts[1]) for i, x in enumerate(files)
+        ]
+        file_ids_to_keep = set(
+            [
+                x[0]
+                for x in filter(lambda x: x[1] == payload.version, file_parts_with_id)
+            ]
+        )
         files = [x for i, x in enumerate(files) if i in file_ids_to_keep]
         audit = await get_audit_trail(payload.projectId)
 
