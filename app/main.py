@@ -70,6 +70,8 @@ async def get_egress(token: str):
         # .done is a marker for the egress being requested, so we remove it
         files = list(filter(lambda x: Path(x.file_name).name != ".done", files))
 
+        # Remove any files that don't fit into the structure of project_id/version/file
+        files = list(filter(lambda x: len(Path(x.file_name).parts) == 3, files))
         # We now want to remove files that are not associated with this version of the egress
         # the file structure is project_id/version/file so let's extract the file ids associated
         # with that version

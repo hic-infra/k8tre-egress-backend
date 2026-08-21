@@ -47,6 +47,29 @@ def mock_ucl_egress_get(project_id):
 
 
 @contextmanager
+def mock_ucl_egress_get_with_odd_filename(project_id):
+    with respx.mock(
+        base_url=settings.egress_app_url, assert_all_called=False
+    ) as router:
+        example = [
+            {
+                "id": "9f73a22f",
+                "file_name": "example.txt",
+                "size": 2000,
+                "approvals": [],
+            }
+        ]
+        router.get(f"/{project_id}/files").mock(
+            return_value=Response(
+                status_code=200,
+                content=json.dumps(example),
+                headers={"content-type": "application/json"},
+            )
+        )
+        yield router
+
+
+@contextmanager
 def mock_ucl_egress_put(project_id, file_id):
     with respx.mock(
         base_url=settings.egress_app_url, assert_all_called=False
@@ -162,11 +185,28 @@ def test_egress_get_with_valid_jwt(authed_client):
     ) as audit_router:
         response = authed_client.get(f"/egress/{token}")
         assert response.status_code == 200
-        print(response.json())
         res = response.json()[0]
         assert res["id"] == "9f73a22f"
         assert len(res["approvals"]) > 0
         assert res["approvals"][0]["action"] == "reject"
+
+
+def test_egress_get_with_odd_filename(authed_client):
+    project_id = "1"
+    dct = {
+        "projectId": project_id,
+        "userId": "user1",
+        "bucketId": "test-bucket",
+        "version": "260819-134427",
+    }
+    token = jwt.encode(dct, settings.secret_key)
+    with mock_ucl_egress_get_with_odd_filename(
+        project_id
+    ) as router, mock_ucl_egress_audit_trail_get(project_id) as audit_router:
+        response = authed_client.get(f"/egress/{token}")
+        assert response.status_code == 200
+        res = response.json()
+        assert len(res) == 0  # A filename that doesn't fit shouldn't be returned
 
 
 def test_egress_get_audit_trail(authed_client):
