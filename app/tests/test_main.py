@@ -14,6 +14,16 @@ from ..main import app
 client = TestClient(app)
 
 
+def create_token(project_id):
+    dct = {
+        "projectId": project_id,
+        "userId": "user1",
+        "bucketId": "test-bucket",
+        "version": "260819-134427",
+    }
+    return jwt.encode(dct, settings.secret_key)
+
+
 @pytest.fixture
 def authed_client():
     app.dependency_overrides[verify_keycloak_token] = lambda: {
@@ -125,6 +135,22 @@ def mock_ucl_egress_audit_trail_get(project_id):
 
 
 @contextmanager
+def mock_ucl_egress_audit_trail_of_nonexistant_project_get(project_id):
+    body = []
+    with respx.mock(
+        base_url=settings.egress_app_url, assert_all_called=False
+    ) as router:
+        router.get(f"/{project_id}/events").mock(
+            return_value=Response(
+                status_code=200,
+                content=json.dumps(body),
+                headers={"content-type": "application/json"},
+            )
+        )
+        yield router
+
+
+@contextmanager
 def mock_ucl_egress_fail():
     with respx.mock(
         base_url=settings.egress_app_url, assert_all_called=False
@@ -173,13 +199,7 @@ def test_egress_get_with_invalid_jwt(authed_client):
 
 def test_egress_get_with_valid_jwt(authed_client):
     project_id = "1"
-    dct = {
-        "projectId": project_id,
-        "userId": "user1",
-        "bucketId": "test-bucket",
-        "version": "260819-134427",
-    }
-    token = jwt.encode(dct, settings.secret_key)
+    token = create_token(project_id)
     with mock_ucl_egress_get(project_id) as router, mock_ucl_egress_audit_trail_get(
         project_id
     ) as audit_router:
@@ -193,13 +213,8 @@ def test_egress_get_with_valid_jwt(authed_client):
 
 def test_egress_get_with_odd_filename(authed_client):
     project_id = "1"
-    dct = {
-        "projectId": project_id,
-        "userId": "user1",
-        "bucketId": "test-bucket",
-        "version": "260819-134427",
-    }
-    token = jwt.encode(dct, settings.secret_key)
+    token = create_token(project_id)
+
     with mock_ucl_egress_get_with_odd_filename(
         project_id
     ) as router, mock_ucl_egress_audit_trail_get(project_id) as audit_router:
@@ -211,19 +226,30 @@ def test_egress_get_with_odd_filename(authed_client):
 
 def test_egress_get_audit_trail(authed_client):
     project_id = "1"
-    # TODO: Fill this in
+    token = create_token(project_id)
+
+    with mock_ucl_egress_audit_trail_get(project_id) as router:
+        response = authed_client.get(f"/egress/audit/{token}")
+        assert response.status_code == 200
+        res = response.json()
+        assert len(res) == 3
+
+
+def test_egress_nonexistant_project(authed_client):
+    project_id = "5"
+    token = create_token(project_id)
+
+    with mock_ucl_egress_audit_trail_of_nonexistant_project_get(project_id) as router:
+        response = authed_client.get(f"/egress/audit/{token}")
+        res = response.json()
+        assert len(res) == 0
 
 
 def test_egress_approve_put_without_comment(authed_client):
     project_id = "1"
     file_id = "9f73a22f"
-    dct = {
-        "projectId": project_id,
-        "userId": "user1",
-        "bucketId": "test-bucket",
-        "version": "260819-134427",
-    }
-    token = jwt.encode(dct, settings.secret_key)
+    token = create_token(project_id)
+
     body = {file_id: {"status": "approve", "comment": ""}}
     with mock_ucl_egress_put(project_id, file_id) as router:
         response = authed_client.put(f"/egress/{token}", json=body)
@@ -233,13 +259,8 @@ def test_egress_approve_put_without_comment(authed_client):
 def test_egress_approve_put_with_valid_jwt(authed_client):
     project_id = "1"
     file_id = "9f73a22f"
-    dct = {
-        "projectId": project_id,
-        "userId": "user1",
-        "bucketId": "test-bucket",
-        "version": "260819-134427",
-    }
-    token = jwt.encode(dct, settings.secret_key)
+    token = create_token(project_id)
+
     body = {file_id: {"status": "approve", "comment": "example"}}
     with mock_ucl_egress_put(project_id, file_id) as router:
         response = authed_client.put(f"/egress/{token}", json=body)
@@ -249,13 +270,8 @@ def test_egress_approve_put_with_valid_jwt(authed_client):
 def test_egress_reject_put_with_valid_jwt(authed_client):
     project_id = "1"
     file_id = "9f73a22f"
-    dct = {
-        "projectId": project_id,
-        "userId": "user1",
-        "bucketId": "test-bucket",
-        "version": "260819-134427",
-    }
-    token = jwt.encode(dct, settings.secret_key)
+    token = create_token(project_id)
+
     body = {file_id: {"status": "reject", "comment": "example"}}
     with mock_ucl_egress_put(project_id, file_id) as router:
         response = authed_client.put(f"/egress/{token}", json=body)
@@ -265,13 +281,8 @@ def test_egress_reject_put_with_valid_jwt(authed_client):
 def test_egress_put_fail(authed_client):
     project_id = "1"
     file_id = "9f73a22f"
-    dct = {
-        "projectId": project_id,
-        "userId": "user1",
-        "bucketId": "test-bucket",
-        "version": "260819-134427",
-    }
-    token = jwt.encode(dct, settings.secret_key)
+    token = create_token(project_id)
+
     body = {file_id: {"status": "approve", "comment": "example"}}
     with mock_ucl_egress_fail() as router:
         response = authed_client.put(f"/egress/{token}", json=body)
