@@ -2,7 +2,7 @@ from typing import Any
 
 
 class EgressServiceError(Exception):
-    def __init__(self, status_code: int, detail: dict[str, Any]):
+    def __init__(self, status_code: int, detail: str):
         self.status_code = status_code
         self.detail = detail
 
