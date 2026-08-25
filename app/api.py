@@ -159,5 +159,7 @@ def decode_token(token: str):
         logger.error(f"JWT token content validation failed: {e.errors()}")
         raise HTTPException(status_code=401, detail="Invalid token claims")
     except jwt.DecodeError as e:
-        logger.error(f"JWT token validation failed - user was potentially trying to access a non-existant egress: {e}")
+        logger.error(
+            f"JWT token validation failed - user was potentially trying to access a non-existant egress: {e}"
+        )
         raise HTTPException(status_code=404, detail="Egress does not exist")

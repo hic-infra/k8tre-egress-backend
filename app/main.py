@@ -30,6 +30,7 @@ router = APIRouter(dependencies=[Depends(verify_keycloak_token)])
 setup_logging()
 logger = get_logger(__name__)
 
+
 @app.exception_handler(Exception)
 async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONResponse:
     return JSONResponse(
@@ -128,7 +129,7 @@ async def get_egress(token: str):
 
         return new_file_lst
     except EgressServiceError as e:
-        context = payload.model_dump() if payload else None 
+        context = payload.model_dump() if payload else None
         logger.error(f"Fetching egress information failed {context}")
         raise HTTPException(status_code=e.status_code, detail=e.detail)
 
