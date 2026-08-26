@@ -1,5 +1,9 @@
 """
-These tests require the UCL backend to be setup and working
+Integration tests.
+
+These tests require the UCL backend to be setup and working.
+They also require a S3 bucket "test-bucket" to be set up, with a file:
+/1/260819-134427/example.txt
 """
 
 from fastapi.testclient import TestClient
