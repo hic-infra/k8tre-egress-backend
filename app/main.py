@@ -10,10 +10,10 @@ from app.api import (
     verify_keycloak_token,
 )
 from app.exceptions import EgressConnectionError, EgressServiceError
+from app.logging import get_logger, setup_logging
 from app.schemas import AuditAction, AuditLog, FileApproval, FileItemWithAudit
 from app.settings import settings
 from fastapi.middleware.cors import CORSMiddleware
-import logging
 import collections
 from pathlib import Path
 
@@ -27,11 +27,8 @@ app.add_middleware(
 )
 
 router = APIRouter(dependencies=[Depends(verify_keycloak_token)])
-logger = logging.getLogger(__name__)
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(name)s] %(levelname)s: %(message)s",
-)
+setup_logging()
+logger = get_logger(__name__)
 
 
 @app.exception_handler(Exception)
@@ -132,6 +129,8 @@ async def get_egress(token: str):
 
         return new_file_lst
     except EgressServiceError as e:
+        context = payload.model_dump() if payload else None
+        logger.error(f"Fetching egress information failed {context}")
         raise HTTPException(status_code=e.status_code, detail=e.detail)
 
 

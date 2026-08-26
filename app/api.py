@@ -7,10 +7,12 @@ import jwt
 from keycloak import KeycloakOpenID
 from pydantic import TypeAdapter, ValidationError
 from app.exceptions import EgressConnectionError, EgressServiceError
+from app.logging import get_logger
 from app.schemas import AuditLog, FileAction, TokenPayload, UCLBEFileItem, UCLBEResponse
 from app.settings import settings
 
 keycloak_bearer_scheme = HTTPBearer() if not settings.disable_auth else lambda: None
+logger = get_logger(__name__)
 
 keycloak_openid = KeycloakOpenID(
     server_url=settings.keycloak_url,
@@ -35,8 +37,9 @@ async def _egress_request(method: str, url: str, **kwargs) -> httpx.Response:
         ) as client:
             return await client.request(method, url, **kwargs)
     except httpx.HTTPError as e:
+        logger.error("Cannot connect to upstream UCL egress app")
         raise EgressConnectionError(
-            status_code=502, detail=f"Upstream Egress app unreachable: {e}"
+            status_code=502, detail=f"Upstream Egress app unreachable"
         )
 
 
@@ -152,7 +155,11 @@ def decode_token(token: str):
         raw = jwt.decode(token, settings.secret_key, algorithms="HS256")
         payload = TokenPayload.model_validate(raw)
         return payload
-    except ValidationError:
+    except ValidationError as e:
+        logger.error(f"JWT token content validation failed: {e.errors()}")
         raise HTTPException(status_code=401, detail="Invalid token claims")
-    except jwt.DecodeError:
+    except jwt.DecodeError as e:
+        logger.error(
+            f"JWT token validation failed - user was potentially trying to access a non-existant egress: {e}"
+        )
         raise HTTPException(status_code=404, detail="Egress does not exist")
