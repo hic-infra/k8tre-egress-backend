@@ -80,11 +80,14 @@ docker build -t hic-egress-backend .
 
 ```
 app/
-├── main.py          # FastAPI app entry point
+├── main.py        # FastAPI app entry point
 ├── api.py         # Methods for talking to UCL egress app
-├── exceptions.py         # Custom exceptions
-├── schemas.py         # Pydantic request/response schemas
-├── settings.py         # Config file structure and validation
+├── exceptions.py  # Custom exceptions
+├── schemas.py     # Pydantic request/response schemas
+├── settings.py    # Config file structure and validation
+├── logging.py     # Sets up the logger
+├── tests/test_main.py                 # Unit tests for project
+├── tests/test_main_integtrations.py   # Integration tests - these require some setup
 ```
 
 ---
