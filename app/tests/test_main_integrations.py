@@ -35,7 +35,7 @@ def test_egress_get_live(authed_client):
         "bucketId": "test-bucket",
         "version": "260819-134427",
     }
-    token = jwt.encode(dct, settings.secret_key)
+    token = jwt.encode(dct, settings.jwt_secret_key)
     response = authed_client.get(f"/egress/{token}")
     assert response.status_code == 200
 
@@ -52,14 +52,14 @@ def test_egress_approve_live(authed_client):
         "bucketId": "test-bucket",
         "version": "260819-134427",
     }
-    token = jwt.encode(dct, settings.secret_key)
+    token = jwt.encode(dct, settings.jwt_secret_key)
     response = authed_client.get(f"/egress/{token}")
     assert response.status_code == 200
     res = response.json()
     assert len(res) > 0
     file_id = res[0]["id"]
     body = {file_id: {"status": "approve", "comment": "example"}}
-    token = jwt.encode(dct, settings.secret_key)
+    token = jwt.encode(dct, settings.jwt_secret_key)
     response = authed_client.put(f"/egress/{token}", json=body)
     assert response.status_code == 200
 
@@ -84,7 +84,7 @@ def test_egress_download_live(authed_client):
         "bucketId": "test-bucket",
         "version": "260819-134427",
     }
-    token = jwt.encode(dct, settings.secret_key)
+    token = jwt.encode(dct, settings.jwt_secret_key)
     response = authed_client.get(f"/egress/{token}")
     assert response.status_code == 200
 

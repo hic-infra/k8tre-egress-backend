@@ -28,7 +28,7 @@ jobs:
           touch .env
           echo egress_app_url=${{ vars.EGRESS_APP_URL }} >> .env
           echo fe_url=${{ vars.FE_URL }} >> .env
-          echo secret_key=${{ secrets.SECRET_KEY }} >> .env
+          echo jwt_secret_key=${{ secrets.JWT_SECRET_KEY }} >> .env
           echo egress_username=${{ vars.EGRESS_USERNAME }} >> .env
           echo egress_password=${{ secrets.EGRESS_PASSWORD }} >> .env
           echo disable_auth=${{ vars.DISABLE_AUTH }} >> .env
