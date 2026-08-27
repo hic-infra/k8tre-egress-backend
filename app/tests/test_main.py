@@ -21,7 +21,7 @@ def create_token(project_id):
         "bucketId": "test-bucket",
         "version": "260819-134427",
     }
-    return jwt.encode(dct, settings.secret_key)
+    return jwt.encode(dct, settings.jwt_secret_key)
 
 
 @pytest.fixture

@@ -152,7 +152,7 @@ async def verify_keycloak_token(
 
 def decode_token(token: str):
     try:
-        raw = jwt.decode(token, settings.secret_key, algorithms="HS256")
+        raw = jwt.decode(token, settings.jwt_secret_key, algorithms="HS256")
         payload = TokenPayload.model_validate(raw)
         return payload
     except ValidationError as e:

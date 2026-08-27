@@ -4,7 +4,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     egress_app_url: str
     fe_url: str
-    secret_key: str
+    jwt_secret_key: str
     egress_username: str
     egress_password: str
     required_approvals: int
